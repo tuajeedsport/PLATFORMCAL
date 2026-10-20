@@ -1,0 +1,1797 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>เช็ค % ค่าธรรมเนียมแพลตฟอร์ม</title>
+</head>
+<body>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: single-column workbench — upload → column mapping → results (platform summary above the order/SKU ledger) */
+:root{
+  --bg:#f2f4f3; --surface:#ffffff; --fg:#17201d; --muted:#5d6b66; --line:#d9dfdc;
+  --accent:#0f6b5c; --accent-soft:#e1f0ec; --over:#c0392b; --over-soft:#fbe9e6; --ok:#1d7a3e; --ok-soft:#e3f3e8;
+  --f-display:"Bai Jamjuree",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#19211e; --fg:#e7eeeb; --muted:#97a6a0; --line:#2b3632;
+  --accent:#4cc3a9; --accent-soft:#183a33; --over:#ff7b6b; --over-soft:#3d1f1b; --ok:#6fd38f; --ok-soft:#1a3424; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#19211e; --fg:#e7eeeb; --muted:#97a6a0; --line:#2b3632;
+  --accent:#4cc3a9; --accent-soft:#183a33; --over:#ff7b6b; --over-soft:#3d1f1b; --ok:#6fd38f; --ok-soft:#1a3424; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;padding-inline:16px;padding-block:28px 48px}
+.wrap{max-width:1120px;margin:0 auto;display:grid;gap:18px}
+.wrap > *{min-width:0}
+header h1{font-family:var(--f-display);font-weight:700;font-size:clamp(1.6rem,4vw,2.2rem);margin:0;text-wrap:balance;line-height:1.2}
+header p{margin:6px 0 0;color:var(--muted);max-width:66ch}
+section.box{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:14px}
+section.box > *{min-width:0}
+h2{font-family:var(--f-display);font-weight:600;font-size:1.05rem;margin:0;display:flex;gap:10px;align-items:baseline}
+h2 .step{font-family:var(--f-num);font-size:.78rem;color:var(--accent);letter-spacing:.06em}
+h3{font-family:var(--f-display);font-weight:600;font-size:.95rem;margin:0}
+.hint{color:var(--muted);font-size:.85rem;margin:0}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+label{display:grid;gap:4px;font-size:.85rem;color:var(--muted)}
+input,select{font:inherit;font-size:.95rem;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0}
+input[type=number]{font-family:var(--f-num)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:.82rem;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:4px 11px;cursor:pointer;text-align:left}
+.chip:hover{border-color:var(--accent)}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:500}
+.chip[data-sign="1"]::before{content:"+ ";font-family:var(--f-num)}
+.chip[data-sign="-1"]{background:var(--over-soft);border-color:var(--over);color:var(--over)}
+.chip[data-sign="-1"]::before{content:"− ";font-family:var(--f-num)}
+.btn{font:inherit;font-size:.85rem;background:transparent;color:var(--accent);border:1px solid var(--accent);border-radius:6px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--accent-soft)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.drop{border:1.5px dashed var(--line);border-radius:10px;padding:22px;display:grid;gap:8px;justify-items:center;text-align:center;background:var(--bg);cursor:pointer}
+.drop.drag{border-color:var(--accent);background:var(--accent-soft)}
+.drop strong{font-family:var(--f-display);font-size:1.05rem;color:var(--fg)}
+.drop input{display:none}
+.howto{margin:0;padding-left:1.2em;font-size:.88rem;color:var(--muted);display:grid;gap:2px}
+.notice{font-size:.85rem;padding:8px 12px;border-radius:8px;background:var(--accent-soft)}
+.notice.warn{background:var(--over-soft)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{background:var(--bg);border-radius:8px;padding:12px 14px;display:grid;gap:2px}
+.stat span{color:var(--muted);font-size:.82rem}
+.stat b{font-family:var(--f-num);font-size:1.4rem;font-weight:600;font-variant-numeric:tabular-nums}
+.stat small{color:var(--muted);font-size:.8rem}
+.stat.hot b{color:var(--over)}
+.scroll{overflow:auto;border:1px solid var(--line);border-radius:8px}
+.scroll.tall{max-height:620px}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th{position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--line);padding:8px;font-weight:500;color:var(--muted);text-align:left;font-size:.8rem;white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+td.n,th.n{text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+th.n{font-family:var(--f-body)}
+td.id{font-family:var(--f-num);font-size:.84rem;white-space:nowrap}
+td.sku{font-family:var(--f-num);font-size:.84rem;white-space:nowrap}
+td.name{color:var(--muted);min-width:14ch;max-width:34ch}
+td.sub{color:var(--muted);font-size:.8rem}
+tr.first td{border-top:1px solid var(--line)}
+td.grp{background:var(--bg)}
+.pct{font-weight:600}
+.pct.hi{color:var(--over)}
+.tag{display:inline-block;font-size:.75rem;font-weight:600;border-radius:999px;padding:1px 9px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+td.id[data-oi]{-webkit-user-select:none;user-select:none;cursor:cell}
+td.id.sel .oid{background:Highlight;color:HighlightText;border-radius:2px;box-shadow:0 0 0 2px Highlight}
+td.id .tag,td.id .sub{-webkit-user-select:none;user-select:none}
+
+td.id .sub.off,td .sub.off{color:var(--over)}
+td.pay{font-size:.84rem;min-width:11ch}
+td.net{font-weight:600}
+td.ref{font-size:.84rem;min-width:16ch}
+.tag.mark{white-space:normal;margin:1px 0}
+.note-why{display:inline-block;max-width:22ch;white-space:normal}
+td.note{min-width:12ch;max-width:28ch;white-space:normal;font-size:.84rem}
+td.brand{font-size:.84rem;font-weight:600;white-space:nowrap}
+/* order-number column stays in view while the table scrolls sideways */
+th{z-index:2}
+th.lock{left:0;z-index:3;box-shadow:1px 0 0 var(--line)}
+td.id[data-oi]:first-child{position:sticky;left:0;z-index:1;box-shadow:1px 0 0 var(--line);background:var(--bg)}
+td.odate{font-family:var(--f-num);font-size:.84rem;white-space:nowrap}
+.pct.plus{color:var(--ok)}
+a.trk{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+a.trk:hover{color:var(--fg)}
+.tag.bad{background:var(--over-soft);color:var(--over)}
+#selBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 14px);z-index:20;display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 32px);background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:8px 12px;box-shadow:0 6px 24px rgba(0,0,0,.25);font-size:.88rem}
+#selBar .btn{background:var(--accent-soft)}
+#selText{position:fixed;left:0;bottom:0;width:1px;height:1px;padding:0;border:0;opacity:0;pointer-events:none;resize:none}
+.hsel{display:block;margin-top:4px;font-family:var(--f-body);font-size:.78rem;font-weight:400;padding:3px 6px;width:auto;max-width:17ch;color:var(--fg)}
+th.n .hsel{margin-left:auto}
+.toolbar #clearHF{margin-left:auto}
+.toolbar #clearHF + .btn{margin-left:0}
+.sortbtn{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:pointer;white-space:nowrap}
+.sortbtn span{color:var(--accent);font-size:.9em}
+.sortbtn:hover{color:var(--fg)}
+th[aria-sort="ascending"],th[aria-sort="descending"]{color:var(--accent)}
+.bar{display:block;height:4px;border-radius:2px;background:var(--line);margin-top:4px;min-width:60px}
+.bar i{display:block;height:100%;border-radius:2px;background:var(--accent)}
+.bar.hi i{background:var(--over)}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.toolbar label{flex:1 1 150px}
+.toolbar .btn{margin-left:auto}
+footer{color:var(--muted);font-size:.8rem;max-width:80ch}
+textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:6px}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>เช็ค % ค่าธรรมเนียมแพลตฟอร์ม</h1>
+    <p>อัปโหลดรายงานคำสั่งซื้อจาก BigSeller เพื่อดูว่า Shopee, Lazada และ TikTok หักค่าธรรมเนียมกี่ % ของยอดขาย แยกรายคำสั่งซื้อและราย SKU</p>
+  </header>
+
+  <section class="box" aria-labelledby="h-up">
+    <h2 id="h-up"><span class="step">STEP 1</span>อัปโหลดรายงานจาก BigSeller</h2>
+    <ol class="howto">
+      <li>ส่งออกรายงานที่มีทั้งรายการสินค้า (SKU) และค่าธรรมเนียมของแต่ละคำสั่งซื้อ เช่น รายงานกำไรคำสั่งซื้อ</li>
+      <li>ลากไฟล์มาวางด้านล่าง เลือกได้หลายไฟล์พร้อมกัน (เช่น แยกไฟล์ตามแพลตฟอร์ม)</li>
+    </ol>
+    <label class="drop" id="drop" for="file">
+      <strong>ลากไฟล์มาวาง หรือกดเพื่อเลือกไฟล์</strong>
+      <span class="hint">รองรับ .xlsx .xls .csv .zip · ไฟล์ถูกอ่านในเบราว์เซอร์ของคุณเท่านั้น ไม่ถูกอัปโหลดไปที่ไหน</span>
+      <input id="file" type="file" accept=".xlsx,.xls,.csv,.zip" multiple>
+    </label>
+    <div class="actions"><button class="btn" id="loadSample" type="button">ลองด้วยข้อมูลตัวอย่าง</button></div>
+    <div class="notice" id="fileStatus" hidden></div>
+    <h3>รายงานรายรับจากแพลตฟอร์ม (ไม่บังคับ)</h3>
+    <p class="hint">ใช้ค่าธรรมเนียมที่แพลตฟอร์มหักจริงแทนตัวเลขใน BigSeller และเทียบส่วนต่างรายคำสั่งซื้อ รองรับรายงานรายรับของ Shopee (ชีต Income), TikTok Shop (ชีต รายละเอียดคำสั่งซื้อ) รายงานการเงินของ Lazada (Transaction Overview) รายงาน Seller Balance ของ Shopee สำหรับกระทบยอดเงินเข้า และรายงานคืนเงิน/คืนสินค้าของ Shopee สำหรับระบุ SKU ที่คืน, รายงานรายรับของฉัน ยอดของฉัน ASC (ค่าจัดส่ง) และรายการสินค้า (ราคาเดิม) ของ Lazada, รายงานคำสั่งซื้อของ Shopee / Lazada / TikTok (สถานะและสาเหตุยกเลิก/จัดส่งไม่สำเร็จ) (วางไฟล์ .zip ที่ดาวน์โหลดมาได้เลย) อัปโหลดเฉพาะรายงานนี้โดยไม่มีไฟล์ BigSeller ก็ได้ แต่จะไม่มีรายละเอียด SKU</p>
+    <label class="drop" id="dropPlat" for="filePlat">
+      <strong>ลากรายงานรายรับของแพลตฟอร์มมาวาง</strong>
+      <span class="hint">เลือกได้หลายไฟล์ · อ่านในเบราว์เซอร์ของคุณเท่านั้น</span>
+      <input id="filePlat" type="file" accept=".xlsx,.xls,.csv,.zip" multiple>
+    </label>
+    <div class="actions"><button class="btn" id="clearPlat" type="button" hidden>ล้างรายงานแพลตฟอร์ม</button></div>
+    <div class="notice" id="platStatus" hidden></div>
+  </section>
+
+  <section class="box" aria-labelledby="h-map" id="mapBox" hidden>
+    <h2 id="h-map"><span class="step">STEP 2</span>ตรวจคอลัมน์</h2>
+    <p class="hint">ระบบเลือกคอลัมน์ให้อัตโนมัติจากชื่อหัวตาราง ถ้าไม่ตรงให้เลือกใหม่ ระบบจำการเลือกไว้ในเบราว์เซอร์นี้</p>
+    <div class="row" id="bsMap">
+      <label for="mOrder">หมายเลขคำสั่งซื้อ<select id="mOrder"></select></label>
+      <label for="mPlat">แพลตฟอร์ม<select id="mPlat"></select></label>
+      <label for="mStore">ร้านค้า<select id="mStore"></select></label>
+      <label for="mPay">วิธีการชำระเงิน<select id="mPay"></select></label>
+      <label for="mDate">วันที่สั่งซื้อ<select id="mDate"></select></label>
+      <label for="mMark">เครื่องหมายคำสั่งซื้อ<select id="mMark"></select></label>
+      <label for="mNoteCS">หมายเหตุ CS<select id="mNoteCS"></select></label>
+      <label for="mNotePick">หมายเหตุ Pick Orders<select id="mNotePick"></select></label>
+      <label for="mTrack">เลขแทรคกิ้ง<select id="mTrack"></select></label>
+      <label for="mShipDate">วันที่ส่งสินค้า (ขนส่งมารับ)<select id="mShipDate"></select></label>
+      <label for="mCancel">วันที่ยกเลิก<select id="mCancel"></select></label>
+      <label for="mCancelWhy">สาเหตุยกเลิก<select id="mCancelWhy"></select></label>
+      <label for="mCancelBy">ผู้ยกเลิก<select id="mCancelBy"></select></label>
+      <label for="mPStat">สถานะแพลตฟอร์ม<select id="mPStat"></select></label>
+      <label for="mSku">SKU<select id="mSku"></select></label>
+      <label for="mName">ชื่อสินค้า<select id="mName"></select></label>
+      <label for="mQty">จำนวน<select id="mQty"></select></label>
+      <label for="mOrig">ราคาสินค้าเดิม (ต่อชิ้น ระบบคูณจำนวนให้)<select id="mOrig"></select></label>
+      <label for="mSales">รวมค่าสินค้า<select id="mSales"></select></label>
+      <label for="mBase">ตัวเลขในคอลัมน์รวมค่าสินค้าเป็น
+        <select id="mBase">
+          <option value="line" selected>ยอดรวมของแถว (คูณจำนวนแล้ว)</option>
+          <option value="unit">ราคาต่อชิ้น (ให้คูณจำนวน)</option>
+        </select></label>
+      <label for="mPrice">ราคาต่อหน่วย (ไม่บังคับ)<select id="mPrice"></select></label>
+      <label for="mSupport">ส่วนลดแพลตฟอร์ม (เงินสนับสนุน + เข้าร้าน)<select id="mSupport"></select></label>
+      <label for="mShip">ค่าจัดส่งที่ผู้ขายชำระ (หักจากเงินเข้า)<select id="mShip"></select></label>
+      <label for="mSettle">ยอดที่ได้รับ (ใช้เมื่อไม่มีคอลัมน์ค่าธรรมเนียม)<select id="mSettle"></select></label>
+    </div>
+    <div style="display:grid;gap:6px" id="bsFees">
+      <h3>คอลัมน์ที่นับเป็นค่าธรรมเนียมแพลตฟอร์ม</h3>
+      <p class="hint">กดวนได้ 3 แบบ: ไม่นับ → บวก (+) → ลบ (−) ค่าเริ่มต้นสำหรับ BigSeller คือ ค่าธรรมเนียมการจัดการ + Transaction Fee ส่วน "ส่วนลดแพลตฟอร์ม" แยกไว้ในช่องด้านบนเป็นเงินสนับสนุนที่ร้านได้รับ<br>เงินเข้าตามสูตร = รวมค่าสินค้า − ค่าธรรมเนียม + ส่วนลดแพลตฟอร์ม − ค่าจัดส่งที่ผู้ขายชำระ ถ้ามีรายงานรายรับของแพลตฟอร์ม ระบบใช้ยอดโอนจริงแทนและแสดงสูตรเทียบไว้ใต้ตัวเลข</p>
+      <div class="chips" id="feeChips"></div>
+    </div>
+    <div class="row">
+      <label for="mMode">ค่าระดับคำสั่งซื้อในไฟล์
+        <select id="mMode">
+          <option value="auto" selected>ตรวจอัตโนมัติ</option>
+          <option value="once">ซ้ำทุกแถวของคำสั่งซื้อ (นับครั้งเดียว)</option>
+          <option value="sum">แยกตามแถว SKU (รวมทุกแถว)</option>
+        </select></label>
+      <label for="mSrc">ค่าธรรมเนียมที่ใช้คำนวณ
+        <select id="mSrc">
+          <option value="plat" selected>จากรายงานแพลตฟอร์ม (ถ้าจับคู่ได้)</option>
+          <option value="big">จาก BigSeller ตามคอลัมน์ที่เลือก</option>
+        </select></label>
+      <label for="mThr">เตือนเมื่อค่าธรรมเนียมเกิน (%)<input id="mThr" type="number" min="0" max="100" step="0.5" value="20" inputmode="decimal"></label>
+      <label for="mHeader">แถวหัวตาราง (เว้นว่าง = อัตโนมัติ)<input id="mHeader" type="number" min="1" step="1" inputmode="numeric"></label>
+    </div>
+  </section>
+
+  <section class="box" aria-labelledby="h-res" id="resBox" hidden>
+    <h2 id="h-res"><span class="step">STEP 3</span>ผลลัพธ์</h2>
+    <div class="notice warn" id="resWarn" hidden></div>
+    <div class="notice" id="matchBox" hidden></div>
+    <div class="stats">
+      <div class="stat hot"><span>% เทียบรวมค่าสินค้าราคาเดิม</span><b id="sPct2">–</b><small id="sPct2N"></small></div>
+      <div class="stat hot"><span>% เทียบรวมค่าสินค้า</span><b id="sPct">–</b><small id="sPctN"></small></div>
+      <div class="stat"><span>ค่าธรรมเนียมรวม</span><b id="sFee">฿0</b><small id="sFeeN"></small></div>
+      <div class="stat"><span>คำสั่งซื้อที่เกินเกณฑ์</span><b id="sHi">0</b><small id="sHiN"></small></div>
+    </div>
+
+    <h3>สรุปตามแพลตฟอร์ม</h3>
+    <div class="scroll"><table><thead id="platHead"></thead><tbody id="platBody"></tbody></table></div>
+
+    <div class="toolbar">
+      <label for="view">มุมมอง
+        <select id="view">
+          <option value="order" selected>รายคำสั่งซื้อ (แจกแจง SKU)</option>
+          <option value="sku">สรุปตาม SKU</option>
+        </select></label>
+      <label for="fPlat">แพลตฟอร์ม<select id="fPlat"></select></label>
+      <label for="fBrand">ยี่ห้อ<select id="fBrand"></select></label>
+      <label for="fPay">วิธีชำระเงิน<select id="fPay"></select></label>
+      <label for="fSort">เรียงตาม
+        <select id="fSort">
+          <option value="pct2" selected>% เทียบราคาเดิม สูงสุดก่อน</option>
+          <option value="pct">% เทียบรวมค่าสินค้า สูงสุดก่อน</option>
+          <option value="fee">ค่าธรรมเนียมสูงสุดก่อน</option>
+          <option value="sales">รวมค่าสินค้าสูงสุดก่อน</option>
+          <option value="diff">ต่างจาก BigSeller มากสุดก่อน</option>
+          <option value="file">ตามลำดับในไฟล์</option>
+        </select></label>
+      <label for="fSearch">ค้นหา<input id="fSearch" type="search" placeholder="เลขคำสั่งซื้อ (วางได้หลายเลข), SKU, ชื่อสินค้า"></label>
+      <button class="btn" id="clearHF" type="button" hidden>ล้างตัวกรองหัวคอลัมน์</button>
+      <button class="btn" id="copyRes" type="button">คัดลอกตารางไปวางใน Excel</button>
+    </div>
+    <div class="scroll tall"><table><thead id="resHead"></thead><tbody id="resBody"></tbody></table></div>
+    <p class="hint" id="resNote"></p>
+    <textarea id="copyFallback" hidden aria-label="ข้อมูลสำหรับคัดลอก" rows="4"></textarea>
+  </section>
+
+  <section class="box" id="balBox" hidden aria-labelledby="h-bal">
+    <h2 id="h-bal"><span class="step">STEP 4</span>กระทบยอดกับ Seller Balance (Shopee)</h2>
+    <p class="hint">เทียบ "จำนวนเงินทั้งหมดที่โอนแล้ว" ของแต่ละคำสั่งซื้อในรายงานรายรับ กับเงินเข้าออกของคำสั่งซื้อเดียวกันใน Seller Balance</p>
+    <div class="notice" id="balNote"></div>
+    <div class="stats">
+      <div class="stat"><span>ตรงกัน</span><b id="bOk">0</b><small id="bOkN"></small></div>
+      <div class="stat hot"><span>ยอดไม่ตรง</span><b id="bDiff">0</b><small id="bDiffN"></small></div>
+      <div class="stat hot"><span>มีในรายรับ แต่ไม่มีเงินเข้า</span><b id="bMiss">0</b><small id="bMissN"></small></div>
+      <div class="stat hot"><span>มีเงินเข้า แต่ไม่มีในรายรับ</span><b id="bExtra">0</b><small id="bExtraN"></small></div>
+    </div>
+    <div class="toolbar">
+      <label for="bFilter">แสดง
+        <select id="bFilter">
+          <option value="check" selected>เฉพาะรายการที่ต้องตรวจ</option>
+          <option value="zero">ยอดโอน ฿0 (ไม่มีเงินเข้า)</option>
+          <option value="ok">ตรงกัน</option>
+          <option value="all">ทั้งหมด</option>
+        </select></label>
+      <button class="btn" id="copyBal" type="button">คัดลอกตารางไปวางใน Excel</button>
+    </div>
+    <div class="scroll tall"><table>
+      <thead><tr><th class="lock">หมายเลขคำสั่งซื้อ</th><th>วันที่สั่งซื้อ</th><th>ผลการกระทบยอด</th><th class="n">ยอดตามรายงานรายรับ</th><th class="n">เงินเข้า Seller Balance</th><th class="n">ส่วนต่าง</th><th>วันที่เงินเข้า</th></tr></thead>
+      <tbody id="balBody"></tbody></table></div>
+    <p class="hint" id="balHint"></p>
+    <h3>รายการอื่นใน Seller Balance ที่ไม่ใช่เงินจากคำสั่งซื้อ</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>วันที่</th><th>ประเภท</th><th>คำอธิบาย</th><th>หมายเลขคำสั่งซื้อ</th><th class="n">จำนวนเงิน</th></tr></thead>
+      <tbody id="balOtherBody"></tbody></table></div>
+    <textarea id="copyBalFallback" hidden aria-label="ข้อมูลกระทบยอดสำหรับคัดลอก" rows="4"></textarea>
+  </section>
+
+  <section class="box" id="lzBalBox" hidden aria-labelledby="h-lzbal">
+    <h2 id="h-lzbal"><span class="step">STEP 4</span>กระทบยอดกับ Lazada Seller Balance (ยอดของฉัน)</h2>
+    <p class="hint">เทียบยอดรวมของแต่ละรหัสรอบบิลในรายงานรายรับของฉัน กับเงินเข้ายอดของฉันที่ Remarks ระบุ Statement No. เดียวกัน</p>
+    <div class="notice" id="lzBalNote"></div>
+    <div class="scroll tall"><table>
+      <thead><tr><th>รหัสรอบบิล</th><th>วันที่เงินเข้า</th><th class="n">คำสั่งซื้อ</th><th class="n">ยอดตามรายรับของฉัน</th><th class="n">เงินเข้ายอดของฉัน</th><th class="n">ส่วนต่าง</th><th>ผล</th><th>คำสั่งซื้อที่ไม่มีในไฟล์รายรับ (จาก ASC)</th></tr></thead>
+      <tbody id="lzBalBody"></tbody></table></div>
+  </section>
+
+  <div id="selBar" hidden role="status">
+    <span id="selCount"></span>
+    <button class="btn" id="selCopy" type="button">คัดลอกหมายเลขคำสั่งซื้อ</button>
+    <button class="btn" id="selClear" type="button">ยกเลิก</button>
+  </div>
+  <textarea id="selText" readonly tabindex="-1" aria-hidden="true"></textarea>
+
+  <footer>วิธีคิด: ค่าธรรมเนียม = คอลัมน์ที่เลือกบวก − คอลัมน์ที่เลือกลบ แล้วเทียบเป็น % กับฐาน 2 แบบแยกกัน คือ รวมค่าสินค้าราคาเดิม (ราคาสินค้าเดิม × จำนวนสินค้า) และ รวมค่าสินค้า ค่าธรรมเนียมที่อยู่ระดับคำสั่งซื้อจะถูกแบ่งให้แต่ละ SKU ตามสัดส่วนรวมค่าสินค้าของ SKU นั้นในคำสั่งซื้อ (ถ้าไม่มีจะใช้สัดส่วนรวมค่าสินค้าราคาเดิม) ดังนั้น % ราย SKU ในคำสั่งซื้อเดียวกันจะเท่ากัน แต่ในมุมมองสรุปตาม SKU จะต่างกันตามคำสั่งซื้อที่ SKU นั้นไปอยู่</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const KEY = "platform-fee-pct-v2";
+  const baht = v => "฿" + v.toLocaleString("th-TH",{minimumFractionDigits:0,maximumFractionDigits:2});
+  const nf = v => v.toLocaleString("th-TH",{maximumFractionDigits:2});
+  const pc = v => v == null ? "–" : (v*100).toFixed(2) + "%";
+  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const r2 = v => Math.round(v*100)/100;
+
+  // order matters: earlier fields claim a column first; patterns within a field are tried in order
+  const FIELDS = ["mOrder","mPlat","mStore","mPay","mDate","mMark","mNoteCS","mNotePick","mTrack","mShipDate","mCancel","mCancelWhy","mCancelBy","mPStat","mSku","mName","mQty","mPrice","mOrig","mSales","mSupport","mShip","mSettle"];
+  const GUESS = {
+    mOrder:[/หมายเลขคำสั่งซื้อ|เลขที่คำสั่งซื้อ|เลขคำสั่งซื้อ|order\s*(id|sn|no|number)/i],
+    mPlat:[/^แพลตฟอร์ม$|^platform$|marketplace/i, /แพลตฟอร์ม|platform/i, /ช่องทางการขาย|sales channel/i],
+    mStore:[/ชื่อร้าน|ร้านค้า|store|shop/i],
+    mDate:[/^เวลาสั่งซื้อ$|วันที่(ทำการ)?สั่งซื้อ|^order (time|date)$|^createTime$/i, /เวลาสั่งซื้อ|order\s*(time|date)|create\s*time|created (at|time)/i],
+    mMark:[/^เครื่องหมายคำสั่งซื้อ$|^order\s*(tag|mark|flag)s?$/i],
+    mNoteCS:[/^หมายเหตุ\s*cs$|^cs\s*(note|remark)s?$/i],
+    mNotePick:[/^หมายเหตุ\s*pick\s*orders?$|^pick(ing)?\s*(order)?\s*(note|remark)s?$/i],
+    mTrack:[/^หมายเลขแทรคกิ้ง$|^\*?หมายเลขติดตามพัสดุ$|^tracking\s*(no\.?|number|code)?$|^trackingcode$/i],
+    mShipDate:[/^เวลาขนส่ง$|^pick\s*up\s*time$/i, /^เวลาจัดส่ง$|^วันที่จัดส่ง(สินค้า)?$|^เวลาส่งสินค้า$|^ship(ping|ped)?\s*(time|date|at)$/i],
+    mCancel:[/^เวลายกเลิก$|^วันที่(คำสั่งซื้อ)?(ถูก)?ยกเลิก$|^cancel(led)?\s*(time|date|at)$/i],
+    mCancelWhy:[/^สาเหตุ(การ)?ยกเลิก$|^เหตุผล(การ)?ยกเลิก$|^cancel(lation)?\s*reason$/i],
+    mPStat:[/^สถานะ(บน)?แพลตฟอร์ม$|^platform\s*status$/i],
+    mCancelBy:[/^ยกเลิกผู้ริเริ่ม$|^ผู้(ริเริ่ม|ขอ)?ยกเลิก$|^cancel(led)?\s*by$|^cancel\s*initiator$/i],
+    mPay:[/วิธี(การ)?ชำระเงิน|ช่องทางการชำระเงิน|payment\s*method|pay\s*method/i],
+    mSku:[/^sku$/i, /merchant sku|seller sku|sku\s*(ของ)?สินค้า|เลขอ้างอิง sku/i, /sku/i],
+    mName:[/ชื่อสินค้า|product name|item name/i],
+    mQty:[/^จำนวน$|^qty$|^quantity$/i, /จำนวน(?!เงิน)|quantity|qty/i],
+    mPrice:[/ราคาต่อหน่วย|ราคาต่อชิ้น|unit price/i],
+    mOrig:[/ราคา(สินค้า)?เดิม|ราคา(สินค้า)?ตั้งต้น|ราคาปกติ|ราคาก่อนลด|original price/i],
+    mSales:[/รวมค่าสินค้า|ยอดรวมสินค้า|ยอดขายสินค้า|product (amount|revenue|sales|subtotal|total)/i, /ยอดขาย|ราคารวม|subtotal|revenue/i,
+            /^ราคา$|^ราคาขาย$|^price$|selling price|deal price/i, /ราคา|price/i],
+    mSupport:[/^ส่วนลด(ของ)?แพลตฟอร์ม$|^platform discount$|^ส่วนลดสินค้าที่ออกโดย shopee$/i],
+    mShip:[/ค่า(จัด)?ส่งที่ผู้ขาย(ชำระ|จ่าย)|seller.*paid.*shipping|shipping.*paid by seller/i],
+    mSettle:[/ยอดที่ได้รับ|ยอดเงินที่ได้รับ|ยอดชำระบัญชี|settlement|payout|escrow/i]
+  };
+  const FEE_RE = /คอมมิช|commission|ธุรกรรม|transaction|ค่าธรรมเนียม|ค่าบริการ|service fee|platform fee|payment fee|affiliate|แอฟฟิลิเอ|นายหน้า/i;
+  const NOT_FEE_RE = /จัดส่ง|ขนส่ง|shipping|ภาษี|tax|vat/i;
+  const PLAT_NOT = /ส่วนลด|discount|สถานะ|status|ค่า|fee|voucher|คูปอง|หมายเลข|เลขที่|order|sku|id$/i;   // "ส่วนลดแพลตฟอร์ม", "สถานะแพลตฟอร์ม" are not the platform name
+  const MINUS_RE = /^ส่วนลด(ของ)?แพลตฟอร์ม$|^platform discount$/i;   // BigSeller: fee = handling + transaction − platform discount
+  const ALL_GUESS = Object.values(GUESS).flat().concat([FEE_RE]);
+
+  // made-up orders in a BigSeller-like layout; order-level fees sit on the first row of each order
+  const SAMPLE = [
+    ["หมายเลขคำสั่งซื้อ","แพลตฟอร์ม","ร้านค้า","วิธีการชำระเงิน","SKU","ชื่อสินค้า","จำนวน","ราคาต่อหน่วย","ราคาสินค้าเดิม","รวมค่าสินค้า","ค่าคอมมิชชั่น","ค่าธรรมเนียมธุรกรรม","ค่าบริการ","ค่าจัดส่งที่ผู้ขายจ่าย","ยอดที่ได้รับ"],
+    ["EX-SP-001","Shopee","ร้านตัวอย่าง A","เก็บเงินปลายทาง","BALL-05","ลูกฟุตบอล เบอร์ 5",2,299,399,598,-65.43,-23.26,-50.89,0,587.42],
+    ["EX-SP-001","Shopee","ร้านตัวอย่าง A","เก็บเงินปลายทาง","SOCK-3P","ถุงเท้ากีฬา แพ็ค 3 คู่",1,129,159,129,"","","","",""],
+    ["EX-SP-002","Shopee","ร้านตัวอย่าง A","เก็บเงินปลายทาง","SHOE-RUN-42","รองเท้าวิ่ง เบอร์ 42",1,1290,1590,1290,-116.1,-41.28,-50,0,1082.62],
+    ["EX-LZ-001","Lazada","ร้านตัวอย่าง B","บัตรเครดิต/บัตรเดบิต","MAT-YOGA","เสื่อโยคะ 6 มม.",1,450,590,450,-22.5,-14.45,-27,0,386.05],
+    ["EX-LZ-002","Lazada","ร้านตัวอย่าง B","บัตรเครดิต/บัตรเดบิต","BOTTLE-750","กระบอกน้ำ 750 มล.",3,159,199,477,-38.8,-24.91,-46.56,0,665.73],
+    ["EX-LZ-002","Lazada","ร้านตัวอย่าง B","บัตรเครดิต/บัตรเดบิต","BALL-05","ลูกฟุตบอล เบอร์ 5",1,299,399,299,"","","","",""],
+    ["EX-TT-001","TikTok","ร้านตัวอย่าง C","QR พร้อมเพย์","BAG-GYM","กระเป๋ายิม",1,590,790,590,-35.4,-18.94,-29.5,0,506.16],
+    ["EX-TT-002","TikTok","ร้านตัวอย่าง C","QR พร้อมเพย์","SOCK-3P","ถุงเท้ากีฬา แพ็ค 3 คู่",4,129,159,516,-30.96,-16.56,-77.4,0,391.08]
+  ];
+
+  let files = [];            // [{name, aoa}]
+  let headers = [], rows = []; // union table
+  let feeSel = new Set();    // header indexes counted as fees
+  let feeCands = [];         // numeric columns offered as fee chips
+  let orders = [], feeCols = [], feeLabels = [], isSample = false;
+  // actual fees from the platforms' own income reports, keyed by order number
+  let platSet = new Set(), balIdSet = new Set();   // platforms that have an income report loaded; every order number seen in Seller Balance
+  let lzStmtPaid = new Map(), lzStmtAmt = new Map(), lzStmtInc = new Map(), lzStmtOrd = new Map();   // Lazada: per statement code, deposit time / deposit amount / income-report total / orders   // Lazada balance: statement code -> time the statement was paid into the seller balance
+  let bigLabels = [];   // fee columns picked from the BigSeller file, kept apart from the platform report's labels
+  let pstMap = new Map();   // order -> status and reason from the platforms' own order exports {st:Set, why:Set, by, detail:Set, src}
+  let lzPrice = new Map();   // Lazada product list: seller SKU -> [{name, list, special}] (one entry per listing that carries the SKU)
+  let ascMap = new Map();   // Lazada ASC order overview: order -> {stmt, total, wrong, charged, cust, lzv} (shipping the shop paid or got back)
+  let cancelMap = new Map();   // Shopee cancelled-order report: order -> {date, status}
+  let retMap = new Map(), retInfo = new Map();   // retInfo: order -> {offer, sellerTrack, returnTrack, returnStatus}   // Shopee return/refund report: order number -> Map(SKU -> pieces returned)
+  let balMap = new Map(), balOther = [], balRecs = [];   // Shopee Seller Balance: order number -> money in/out, plus non-order rows
+  let platMap = new Map(), platLabels = [], joined = false;   // joined: order file and platform reports are both loaded
+  const hkey = s => String(s ?? "").normalize("NFC").replace(/\s+/g, "");
+  const PLAT_FORMATS = [
+    { platform:"Shopee", need:["หมายเลขคำสั่งซื้อ","สินค้าราคาปกติ","ค่าคอมมิชชั่น"], id:"หมายเลขคำสั่งซื้อ", pay:"ช่องทางการชำระเงินของผู้ซื้อ", payPlan:"แผนการผ่อนชำระ", payDetail:"ช่องทางการชำระเงิน (รายละเอียด)", payRate:"ค่าธรรมเนียม (%)", payout:"จำนวนเงินทั้งหมดที่โอนแล้ว (฿)", date:"วันที่ทำการสั่งซื้อ",
+      fees:["ค่าคอมมิชชั่น AMS","ค่าคอมมิชชั่น","ค่าบริการ","ค่าธรรมเนียมโครงสร้างพื้นฐานแพลตฟอร์ม","ค่าธรรมเนียม ของโปรแกรมประหยัดค่าจัดส่ง","ค่าธุรกรรมการชำระเงิน"],
+      orig:["สินค้าราคาปกติ"], sales:["สินค้าราคาปกติ","ส่วนลดสินค้าจากผู้ขาย","จำนวนเงินที่ทำการคืนให้ผู้ซื้อ"], refund:["จำนวนเงินที่ทำการคืนให้ผู้ซื้อ"], support:["ส่วนลดสินค้าที่ออกโดย Shopee"],
+      ship:["ค่าจัดส่งที่ชำระโดยผู้ซื้อ","ค่าจัดส่งสินค้าที่ออกโดย Shopee","ค่าจัดส่งที่ Shopee ชำระโดยชื่อของคุณ","ค่าจัดส่งสินค้าคืน","ค่าจัดส่งสินค้าคืนผู้ขาย","โปรแกรมประหยัดค่าจัดส่งคืนสินค้า"] },
+    { platform:"TikTok", need:["หมายเลขคำสั่งซื้อ/การปรับ","ค่าธรรมเนียมทั้งหมด"], id:"หมายเลขคำสั่งซื้อ/การปรับ", total:"ค่าธรรมเนียมทั้งหมด", payout:"ยอดการชำระเงินทั้งหมด", date:"เวลาที่สร้างคำสั่งซื้อ",
+      type:"ประเภทธุรกรรม", typeOk:/คำสั่งซื้อ|order/i,
+      fees:["ค่าธรรมเนียมคำสั่งซื้อ","ค่าคอมมิชชั่น TikTok Shop","ค่าคอมมิชชั่นแอฟฟิลิเอต","ค่าธรรมเนียมสนับสนุนการเติบโตของร้านค้า","ค่าบริการแบรนด์ดัง ลดแรง/แฟลชเซล"],
+      orig:["ยอดรวมค่าสินค้าก่อนหักส่วนลด","ยอดรวมเงินคืนก่อนหักส่วนลดจากร้านค้า"], sales:["ยอดรวมค่าสินค้าหลังหักส่วนลดจากผู้ขาย","ยอดรวมเงินคืนหลังหักส่วนลดจากผู้ขาย"], refund:["ยอดรวมเงินคืนหลังหักส่วนลดจากผู้ขาย"], ship:["ยอดรวมค่าจัดส่งที่ร้านค้าจ่ายจริง"],
+      salesH:["ยอดรวมค่าสินค้าหลังหักส่วนลดจากผู้ขาย"], paidAt:"เวลาที่ชำระคำสั่งซื้อ", supInfo:["ส่วนลดจากแพลตฟอร์ม","คูปองส่วนลดร่วมของแพลตฟอร์ม"] }
+  ];
+  const OTHER_FEE = "ค่าธรรมเนียมอื่นๆ", BIG_ONLY = "ไม่พบในรายงานแพลตฟอร์ม (ค่า BigSeller)";
+  function addPst(id, platform, st, why, by, detail){
+    const x = pstMap.get(id) || {platform, st:new Set(), why:new Set(), by:new Set(), detail:new Set()};
+    if (st) x.st.add(st); if (why) x.why.add(why); if (by) x.by.add(by); if (detail) x.detail.add(detail);
+    pstMap.set(id, x);
+  }
+  // Lazada writes statuses as codes; show a Thai meaning beside them
+  const ST_TH = {canceled:"ยกเลิก", cancelled:"ยกเลิก", confirmed:"ลูกค้ายืนยันรับสินค้า", delivered:"จัดส่งสำเร็จ", shipped:"จัดส่งแล้ว", ready_to_ship:"พร้อมส่ง", packed:"แพ็คแล้ว", pending:"รอดำเนินการ", unpaid:"ยังไม่ชำระเงิน",
+    returned:"คืนสินค้า", shipped_back:"กำลังตีกลับ", shipped_back_success:"ตีกลับถึงร้านแล้ว", shipped_back_failed:"ตีกลับไม่สำเร็จ", failed_delivery:"จัดส่งไม่สำเร็จ", failed:"จัดส่งไม่สำเร็จ", lost_by_3pl:"ขนส่งทำหาย", damaged_by_3pl:"ขนส่งทำเสียหาย",
+    "cancel-buyer":"ผู้ซื้อยกเลิก", "cancel-seller":"ผู้ขายยกเลิก", "cancel-system":"ระบบยกเลิก", "cancel-internal":"Lazada ยกเลิก", "return-buyer":"ผู้ซื้อขอคืน", user:"ผู้ซื้อ", system:"ระบบ", seller:"ผู้ขาย"};
+  const stTh = s => { const k = String(s || "").trim().toLowerCase(); return ST_TH[k] ? `${s} (${ST_TH[k]})` : s; };
+  const BAD_ST = /cancel|ยกเลิก|return|คืน|fail|ไม่สำเร็จ|shipped_back|ตีกลับ|lost|damaged/i;
+  const pstOf = o => pstMap.get(o.id);
+  const pstText = o => { const x = pstOf(o); return x ? [...x.st].map(stTh).join(", ") : ""; };
+  const pwhyText = o => { const x = pstOf(o); return x ? [...x.why].join(", ") : ""; };
+  // returns {platform, n} when the sheet is a known income report, "lazada-orders" for a Lazada order export, else null
+  function parsePlatformSheet(aoa){
+    for (let r = 0; r < Math.min(aoa.length, 20); r++) {
+      const keys = (aoa[r] || []).map(hkey);
+      // Lazada order export: status and failed-delivery reason per item
+      if (keys.includes("orderItemId") && keys.includes("orderNumber") && keys.includes("status")) {
+        const ci = n => keys.indexOf(n);
+        const cO = ci("orderNumber"), cS = ci("status"), cB = ci("buyerFailedDeliveryReturnInitiator"), cR = ci("buyerFailedDeliveryReason"), cD = ci("buyerFailedDeliveryDetail");
+        const ids = new Set();
+        for (let k = r + 1; k < aoa.length; k++) {
+          const row = aoa[k] || [], id = txt(row[cO]);
+          if (!id) continue;
+          addPst(id, "Lazada", txt(row[cS]), cR >= 0 ? txt(row[cR]) : "", cB >= 0 ? txt(row[cB]) : "", cD >= 0 ? txt(row[cD]) : "");
+          ids.add(id);
+        }
+        return {platform:"Lazada คำสั่งซื้อ (สถานะ/สาเหตุ)", n:ids.size, unit:"คำสั่งซื้อ"};
+      }
+      // TikTok order export (OrderSKUList); its second row describes the columns
+      if (["Order ID","Order Status","Cancel Reason"].every(n => keys.includes(hkey(n)))) {
+        const ci = n => keys.indexOf(hkey(n));
+        const cO = ci("Order ID"), cS = ci("Order Status"), cU = ci("Order Substatus"), cT = ci("Cancelation/Return Type"), cB = ci("Cancel By"), cR = ci("Cancel Reason");
+        const ids = new Set();
+        for (let k = r + 1; k < aoa.length; k++) {
+          const row = aoa[k] || [], id = txt(row[cO]);
+          if (!/^\d{6,}$/.test(id)) continue;
+          const st = txt(row[cS]), sub = cU >= 0 ? txt(row[cU]) : "", typ = cT >= 0 ? txt(row[cT]) : "";
+          addPst(id, "TikTok", st + (sub && sub !== st ? ` · ${sub}` : ""), cR >= 0 ? txt(row[cR]) : "", cB >= 0 ? txt(row[cB]) : "", typ);
+          ids.add(id);
+        }
+        return {platform:"TikTok คำสั่งซื้อ (สถานะ/สาเหตุ)", n:ids.size, unit:"คำสั่งซื้อ"};
+      }
+      // Shopee order export (all, completed, cancelled, failed delivery): status and cancel reason; the cancelled file also dates the cancel
+      if (["หมายเลขคำสั่งซื้อ","สถานะการสั่งซื้อ"].every(n => keys.includes(hkey(n))) && ["วันที่คำสั่งซื้อถูกยกเลิก","เหตุผลในการยกเลิกคำสั่งซื้อ"].some(n => keys.includes(hkey(n)))) {
+        const ci = n => keys.indexOf(hkey(n));
+        const cO = ci("หมายเลขคำสั่งซื้อ"), cD = ci("วันที่คำสั่งซื้อถูกยกเลิก"), cS = ci("สถานะการสั่งซื้อ"), cR = ci("เหตุผลในการยกเลิกคำสั่งซื้อ"), cK = ci("สถานะการคืนเงินหรือคืนสินค้า"), cC = ci("สถานะคำขอเคลม");
+        const ids = new Set();
+        for (let k = r + 1; k < aoa.length; k++) {
+          const row = aoa[k] || [], id = txt(row[cO]);
+          if (!id) continue;
+          const why = cR >= 0 ? txt(row[cR]).replace(/<br\s*\/?>/gi, " ").replace(/\s+/g, " ").trim() : "";
+          const det = [cK >= 0 ? txt(row[cK]) : "", cC >= 0 && txt(row[cC]) ? `เคลม: ${txt(row[cC])}` : ""].filter(Boolean).join(" · ");
+          addPst(id, "Shopee", txt(row[cS]), why, "", det);
+          ids.add(id);
+          const d = cD >= 0 ? normDate(row[cD]) : "";
+          if (d && !cancelMap.has(id)) cancelMap.set(id, {date:d, dt: normDT(row[cD]), status: cS >= 0 ? txt(row[cS]) : ""});
+        }
+        return {platform:"Shopee คำสั่งซื้อ (สถานะ/สาเหตุ)", n:ids.size, unit:"คำสั่งซื้อ", skipZero:true};
+      }
+      // Shopee return/refund report (one row per SKU per request)
+      if (["หมายเลขคำขอคืนเงิน/คืนสินค้า","หมายเลขคำสั่งซื้อ","เลข SKU","จำนวนสินค้าคืน"].every(n => keys.includes(hkey(n)))) {
+        const ci = n => keys.indexOf(hkey(n));
+        const cO = ci("หมายเลขคำสั่งซื้อ"), cS = ci("เลข SKU"), cQ = ci("จำนวนสินค้าคืน"), cK = ci("สถานะการคืนเงินหรือคืนสินค้า");
+        const cOffer = ci("ข้อเสนอการคืนเงิน/คืนสินค้า"), cST = ci("หมายเลขติดตามพัสดุจากผู้ขาย"), cRT = ci("หมายเลขติดตามพัสดุสำหรับส่งคืน"), cRS = ci("สถานะการส่งสินค้าคืน"), cReq = ci("เวลายื่นคำขอคืนเงิน/คืนสินค้า"), cRefT = ci("เวลาที่คืนเงิน"), cBack = ci("เวลาที่จัดส่งสินค้าคืนสำเร็จ");
+        const val = (row, i) => { const s = i >= 0 ? txt(row[i]) : ""; return /^-+$/.test(s) ? "" : s; };
+        const m = new Map();
+        for (let k = r + 1; k < aoa.length; k++) {
+          const row = aoa[k] || [], id = txt(row[cO]), sku = txt(row[cS]);
+          // a withdrawn or refused request moved no money
+          if (!id || !sku || (cK >= 0 && /ยกเลิกคำขอ|ปฏิเสธคำขอ/.test(txt(row[cK])))) continue;
+          if (!m.has(id)) m.set(id, new Map());
+          const inf = retInfo.get(id) || {offer:"", sellerTrack:"", returnTrack:"", returnStatus:""};
+          inf.offer = inf.offer || val(row, cOffer); inf.sellerTrack = inf.sellerTrack || val(row, cST);
+          inf.returnTrack = inf.returnTrack || val(row, cRT); inf.returnStatus = inf.returnStatus || val(row, cRS);
+          inf.reqT = inf.reqT || normDT(val(row, cReq)); inf.refT = inf.refT || normDT(val(row, cRefT)); inf.backT = inf.backT || normDT(val(row, cBack));
+          retInfo.set(id, inf);
+          m.get(id).set(sku, (m.get(id).get(sku) || 0) + (num(row[cQ]) || 1));
+        }
+        m.forEach((v,id) => retMap.set(id, v));
+        return {platform:"Shopee รายงานคืนเงิน/คืนสินค้า", n:m.size};
+      }
+      // Shopee Seller Balance transaction report
+      if (["รหัสคำสั่งซื้อ","รูปแบบธุรกรรม","จำนวนเงิน","ประเภทการทำธุรกรรม"].every(n => keys.includes(hkey(n)))) {
+        const ci = n => keys.indexOf(hkey(n));
+        const cD = ci("วันที่"), cT = ci("ประเภทการทำธุรกรรม"), cC = ci("คำอธิบาย"), cO = ci("รหัสคำสั่งซื้อ"), cA = ci("จำนวนเงิน");
+        balMap = new Map(); balOther = [];
+        let n = 0;
+        for (let k = r + 1; k < aoa.length; k++) {
+          const row = aoa[k] || [], type = txt(row[cT]);
+          if (!type) continue;
+          n++;
+          const id = txt(row[cO]).replace(/^-+$/, ""), amt = num(row[cA]), date = cD >= 0 ? txt(row[cD]) : "";
+          if (id && /รายรับจากคำสั่งซื้อ|order income/i.test(type)) {
+            let b = balMap.get(id);
+            if (!b) { b = {amt:0, n:0, date}; balMap.set(id, b); }
+            b.amt += amt; b.n++;
+          } else balOther.push({date, type, desc: cC >= 0 ? txt(row[cC]) : "", id, amt});
+        }
+        return {platform:"Shopee Seller Balance", n, unit:"รายการ"};
+      }
+      // Lazada product list (Seller Center export): ราคา is the list price, ราคาพิเศษ the promo price, per seller SKU
+      {
+        const ci = (...ns) => { for (const n of ns) { const i = keys.indexOf(hkey(n)); if (i >= 0) return i; } return -1; };
+        const cS = ci("SKU","SellerSku"), cL = ci("ราคา","Price"), cM = ci("ราคาพิเศษ","SpecialPrice"), cN = ci("ชื่อสินค้า","name"), cP = ci("Product ID","ItemId");
+        if (cS >= 0 && cL >= 0 && cM >= 0 && cP >= 0) {
+          let n = 0;
+          for (let k = r + 1; k < aoa.length; k++) {
+            const row = aoa[k] || [], sku = txt(row[cS]), list = num(row[cL]);
+            if (!sku || !(list > 0)) continue;
+            const e = {name: cN >= 0 ? txt(row[cN]) : "", list, special: num(row[cM])};
+            const arr = lzPrice.get(sku) || [];
+            if (!arr.some(x => x.name === e.name && x.list === e.list)) arr.push(e);
+            if (!lzPrice.has(sku)) n++;
+            lzPrice.set(sku, arr);
+          }
+          return {platform:"Lazada รายการสินค้า (ราคาเดิม)", n, unit:"SKU"};
+        }
+      }
+      // Lazada ASC order overview: shipping charged per order, with the statement it was settled in
+      {
+        const kk = keys.map(k => k.toLowerCase()), ci = n => kk.findIndex(k => k.startsWith(n.toLowerCase()));
+        if (["statementno","orderid","shippingfeechargedbylazada","totalamountofaccountstatement"].every(n => ci(n) >= 0)) {
+          const cS = ci("statementno"), cO = ci("orderid"), cW = ci("totalamountofaccountstatement"), cM = ci("wrongweightadjustment"),
+                cN = ci("shippingfeechargedbylazada"), cK = ci("shippingfeepaidbycustomer"), cL = ci("shippingfeevoucherbylazada");
+          const m = new Map(), v = (row, i) => i >= 0 ? num(row[i]) : 0;
+          for (let k = r + 1; k < aoa.length; k++) {
+            const row = aoa[k] || [], id = txt(row[cO]);
+            if (!id) continue;
+            const x = m.get(id) || {stmt: txt(row[cS]), total:0, wrong:0, charged:0, cust:0, lzv:0};
+            x.total += v(row, cW); x.wrong += v(row, cM); x.charged += v(row, cN); x.cust += v(row, cK); x.lzv += v(row, cL);
+            m.set(id, x);
+          }
+          m.forEach((x,id) => ascMap.set(id, x));
+          return {platform:"Lazada ค่าจัดส่ง (ASC)", n:m.size, unit:"คำสั่งซื้อ"};
+        }
+      }
+      // Lazada Balance Transactions: each settlement deposit names the statement it pays
+      if (["TransactionNumber","TransactionTime","Type","Amount","Remarks"].every(n => keys.includes(n))) {
+        const cT = keys.indexOf("TransactionTime"), cR = keys.indexOf("Remarks"), cAm = keys.indexOf("Amount"), sums = new Map();
+        let n = 0;
+        for (let k = r + 1; k < aoa.length; k++) {
+          const row = aoa[k] || [], m = /statement\s*no\.?\s*([A-Z0-9-]+)/i.exec(txt(row[cR]));
+          if (!m) continue;
+          const at = normDT(row[cT]), prev = lzStmtPaid.get(m[1]);
+          if (!prev || at > prev) lzStmtPaid.set(m[1], at);
+          sums.set(m[1], (sums.get(m[1]) || 0) + num(row[cAm]));
+          n++;
+        }
+        sums.forEach((v,c) => lzStmtAmt.set(c, v));
+        return {platform:"Lazada Seller Balance", n, unit:"รอบบิล"};
+      }
+      // Lazada finance "Income Overview" (Thai): one row per transaction per order item
+      if (["ชื่อรายการธุรกรรม","จำนวนเงิน(รวมภาษี)","หมายเลขคำสั่งซื้อ"].every(n => keys.includes(hkey(n)))) {
+        const ci = n => keys.indexOf(hkey(n));
+        const cN = ci("ชื่อรายการธุรกรรม"), cA = ci("จำนวนเงิน(รวมภาษี)"), cO = ci("หมายเลขคำสั่งซื้อ"), cI = ci("รหัสสินค้าในคำสั่งซื้อ"),
+              cS = ci("SKU ร้านค้า"), cD = ci("ชื่อสินค้า"), cB = ci("รหัสรอบบิล"), cH = ci("วันที่ปรับปรุงเข้ายอดของฉัน"), cC = ci("วันที่สร้างคำสั่งซื้อ");
+        const stmtSum = new Map(), stmtOrd = new Map();
+        const m = new Map();
+        for (let k = r + 1; k < aoa.length; k++) {
+          const row = aoa[k] || [], id = txt(row[cO]), name = txt(row[cN]);
+          { const code = cB >= 0 ? txt(row[cB]) : ""; if (code && name) { stmtSum.set(code, (stmtSum.get(code) || 0) + num(row[cA])); if (id) { if (!stmtOrd.has(code)) stmtOrd.set(code, new Set()); stmtOrd.get(code).add(id); } } }
+          if (!id || !name) continue;
+          let a = m.get(id);
+          if (!a) { a = {id, platform:"Lazada", parts:{}, fee:0, orig:0, sales:0, payout:0, ship:0, items:new Map(), stmts:new Set(), credited:"", date: cC >= 0 ? normDate(row[cC]) : ""}; a.dateT = a.date; m.set(id, a); }
+          const amt = num(row[cA]), itemNo = cI >= 0 ? txt(row[cI]) : "";
+          a.payout += amt;
+          if (cB >= 0 && txt(row[cB])) a.stmts.add(txt(row[cB]));
+          const cr = cH >= 0 ? normDate(row[cH]) : ""; if (cr > a.credited) a.credited = cr;
+          let it = a.items.get(itemNo);
+          if (!it) { it = {sku: cS >= 0 ? txt(row[cS]) : "", name: cD >= 0 ? txt(row[cD]) : "", sales:0, fee:0, parts:{}}; a.items.set(itemNo, it); }
+          if (/ค่าสินค้า/.test(name) && !/ค่าธรรมเนียม/.test(name)) {
+            a.sales += amt; it.sales += amt;
+            if (amt < 0) { a.refund = (a.refund || 0) - amt; it.refund = (it.refund || 0) - amt; }
+          } else if (/จัดส่ง|ขนส่ง|shipping/i.test(name)) {
+            a.ship -= amt;
+          } else {
+            a.parts[name] = (a.parts[name] || 0) - amt; a.fee -= amt;
+            it.parts[name] = (it.parts[name] || 0) - amt; it.fee -= amt;
+          }
+        }
+        m.forEach((a,id) => platMap.set(id, a));
+        stmtSum.forEach((v,c) => lzStmtInc.set(c, v)); stmtOrd.forEach((v,c) => lzStmtOrd.set(c, v));
+        return {platform:"Lazada", n:m.size};
+      }
+      // Lazada finance "Transaction Overview": one row per fee per order item, with the seller SKU on every row
+      if (["TransactionType","FeeName","OrderNo.","Amount"].every(n => keys.includes(n))) {
+        const ci = n => keys.indexOf(n);
+        const cT = ci("TransactionType"), cF = ci("FeeName"), cO = ci("OrderNo."), cA = ci("Amount"), cI = ci("OrderItemNo."), cS = ci("SellerSKU"), cD = ci("Details");
+        const m = new Map(), late = new Map(), shipM = new Map();
+        for (let k = r + 1; k < aoa.length; k++) {
+          const row = aoa[k] || [], id = txt(row[cO]), type = txt(row[cT]);
+          const isFee = /fee/i.test(type), isSale = /sales/i.test(type);   // logistics rows are shipping, not platform fees
+          if (!id) continue;
+          late.set(id, (late.get(id) || 0) + num(row[cA]));   // every row counts toward what is actually paid out
+          if (!isFee && !isSale) { shipM.set(id, (shipM.get(id) || 0) - num(row[cA])); continue; }   // logistics rows
+          let a = m.get(id);
+          if (!a) { a = {id, platform:"Lazada", parts:{}, fee:0, orig:0, sales:0, items:new Map()}; m.set(id, a); }
+          const itemNo = cI >= 0 ? txt(row[cI]) : "";
+          let it = a.items.get(itemNo);
+          if (!it) { it = {sku: cS >= 0 ? txt(row[cS]) : "", name: cD >= 0 ? txt(row[cD]) : "", sales:0, fee:0, parts:{}}; a.items.set(itemNo, it); }
+          const amt = num(row[cA]);
+          if (isSale) {
+            a.sales += amt; it.sales += amt;
+            if (/^refund/i.test(type)) { a.refund = (a.refund || 0) - amt; it.refund = (it.refund || 0) - amt; }
+            continue;
+          }
+          const name = txt(row[cF]).replace(/^(reverse\s*-\s*|reversal\s+)/i, "") || OTHER_FEE;
+          a.parts[name] = (a.parts[name] || 0) - amt; a.fee -= amt;
+          it.parts[name] = (it.parts[name] || 0) - amt; it.fee -= amt;
+        }
+        m.forEach((a,id) => { a.payout = late.get(id) || 0; a.ship = shipM.get(id) || 0; platMap.set(id, a); });
+        return {platform:"Lazada", n:m.size};
+      }
+      const fmt = PLAT_FORMATS.find(f => f.need.every(n => keys.includes(hkey(n))));
+      if (!fmt) continue;
+      const col = n => keys.indexOf(hkey(n));
+      const cId = col(fmt.id), cType = fmt.type ? col(fmt.type) : -1, cTotal = fmt.total ? col(fmt.total) : -1, cPay = fmt.pay ? col(fmt.pay) : -1, cOut = fmt.payout ? col(fmt.payout) : -1, cDate = fmt.date ? col(fmt.date) : -1;
+      const cPlan = fmt.payPlan ? col(fmt.payPlan) : -1, cDet = fmt.payDetail ? col(fmt.payDetail) : -1, cRate = fmt.payRate ? col(fmt.payRate) : -1;
+      // "SPayLater" + plan "12x" -> "SPayLater 12 เดือน"; down-payment plans are charged differently, so keep them apart
+      const payLabel = row => {
+        if (cPay < 0) return "";
+        const months = cPlan >= 0 ? (/(\d+)\s*x/i.exec(txt(row[cPlan])) || [])[1] : "";
+        return txt(row[cPay]) + (months ? ` ${months} เดือน` : "") + (cDet >= 0 && /down\s*payment/i.test(txt(row[cDet])) ? " (Down Payment)" : "");
+      };
+      const payRate = row => { if (cRate < 0) return ""; const v = row[cRate]; return typeof v === "number" ? (v <= 1 ? (v * 100).toFixed(2) : v.toFixed(2)) + "%" : txt(v); };
+      const sum = (row, names) => names.reduce((t,n) => { const i = col(n); return t + (i >= 0 ? num(row[i]) : 0); }, 0);
+      const m = new Map();
+      for (let k = r + 1; k < aoa.length; k++) {
+        const row = aoa[k] || [], id = txt(row[cId]);
+        if (!id || (cType >= 0 && !fmt.typeOk.test(txt(row[cType])))) continue;
+        let a = m.get(id);
+        if (!a) { a = {id, platform:fmt.platform, pay: payLabel(row), payRate: payRate(row), date: cDate >= 0 ? normDate(row[cDate]) : "", dateT: cDate >= 0 ? normDT(row[cDate]) : "", parts:{}, fee:0, orig:0, sales:0}; m.set(id, a); }
+        let named = 0;
+        fmt.fees.forEach(name => { const i = col(name); if (i < 0) return; const v = -num(row[i]); if (!v) return; a.parts[name] = (a.parts[name] || 0) + v; named += v; });
+        const fee = cTotal >= 0 ? -num(row[cTotal]) : named;
+        if (Math.abs(fee - named) > 0.005) a.parts[OTHER_FEE] = (a.parts[OTHER_FEE] || 0) + fee - named;
+        a.fee += fee; a.orig += sum(row, fmt.orig); a.sales += sum(row, fmt.sales);
+        if (cOut >= 0) a.payout = (a.payout || 0) + num(row[cOut]);
+        if (fmt.refund) a.refund = (a.refund || 0) - sum(row, fmt.refund);
+        if (fmt.ship) a.ship = (a.ship || 0) - sum(row, fmt.ship);
+        if (fmt.support) a.support = (a.support || 0) + sum(row, fmt.support);
+        if (fmt.salesH) a.salesH = (a.salesH || 0) + sum(row, fmt.salesH);
+        if (fmt.paidAt && !a.paidAt) { const i = col(fmt.paidAt); if (i >= 0) a.paidAt = normDT(row[i]); }
+        if (fmt.supInfo) a.supInfo = (a.supInfo || 0) + sum(row, fmt.supInfo);
+      }
+      m.forEach((a,id) => platMap.set(id, a));
+      return {platform:fmt.platform, n:m.size};
+    }
+    return null;
+  }
+  function refreshPlatLabels(){
+    const seen = new Set();
+    platMap.forEach(a => Object.keys(a.parts).forEach(k => seen.add(k)));
+    const order = PLAT_FORMATS.flatMap(f => f.fees).concat([OTHER_FEE]);
+    platLabels = order.filter((k,i) => seen.has(k) && order.indexOf(k) === i).concat([...seen].filter(k => !order.includes(k)));
+  }
+
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch(e) {}
+  if (saved.thr != null) $("mThr").value = saved.thr;
+
+  function num(v){
+    if (typeof v === "number") return v;
+    if (v == null) return 0;
+    let s = String(v).trim(); if (!s) return 0;
+    const neg = /^\(.*\)$/.test(s);
+    s = s.replace(/[(),฿%\s]|THB|บาท/gi, "");
+    const n = parseFloat(s);
+    return isFinite(n) ? (neg ? -Math.abs(n) : n) : 0;
+  }
+  const txt = v => String(v ?? "").trim();
+  const MONTHS = {"ม.ค.":1,"ก.พ.":2,"มี.ค.":3,"เม.ย.":4,"พ.ค.":5,"มิ.ย.":6,"ก.ค.":7,"ส.ค.":8,"ก.ย.":9,"ต.ค.":10,"พ.ย.":11,"ธ.ค.":12,
+    jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+  // date with the time of day when the source has one: "2026-08-20 19:45"
+  function normDT(v){
+    const d = normDate(v); if (!d) return "";
+    if (typeof v === "number") { const mins = Math.round((v % 1) * 1440); return mins ? `${d} ${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}` : d; }
+    const m = /(\d{1,2}):(\d{2})/.exec(txt(v).slice(8));
+    return m ? `${d} ${m[1].padStart(2, "0")}:${m[2]}` : d;
+  }
+  function normDate(v){
+    const p2 = n => String(n).padStart(2, "0");
+    if (typeof v === "number" && v > 20000 && v < 80000) { const d = new Date(Math.round((v - 25569) * 86400000)); return `${d.getUTCFullYear()}-${p2(d.getUTCMonth() + 1)}-${p2(d.getUTCDate())}`; }
+    const s = txt(v); if (!s) return "";
+    let m = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/.exec(s);
+    if (m) return `${m[1]}-${p2(m[2])}-${p2(m[3])}`;
+    m = /^(\d{1,2})\s+(\S+?)\s+(\d{4})/.exec(s);
+    if (m) { const mo = MONTHS[m[2]] || MONTHS[m[2].slice(0, 3).toLowerCase()]; const y = +m[3] > 2400 ? +m[3] - 543 : +m[3]; if (mo) return `${y}-${p2(mo)}-${p2(m[1])}`; }
+    return s.slice(0, 10);
+  }
+  function headerScore(row){
+    let sc = 0;
+    (row || []).forEach(c => { const s = txt(c); if (!s) return; sc += ALL_GUESS.some(p => p.test(s)) ? 2 : 0.1; });
+    return sc;
+  }
+  function detectHeader(aoa){
+    let best = 0, bestScore = -1;
+    for (let r = 0; r < Math.min(aoa.length, 40); r++) { const sc = headerScore(aoa[r]); if (sc > bestScore) { bestScore = sc; best = r; } }
+    return best;
+  }
+  function platformOf(p, store, id){
+    for (const s of [p, store]) {
+      if (/shopee|ช้อปปี้/i.test(s)) return "Shopee";
+      if (/lazada|ลาซาด้า/i.test(s)) return "Lazada";
+      if (/tik\s*tok|ติ๊กต็อก/i.test(s)) return "TikTok";
+    }
+    // no usable platform column: fall back to the shape of the order number
+    if (/^\d{6}[A-Z0-9]{8}$/.test(id)) return "Shopee";
+    if (/^5\d{17,18}$/.test(id)) return "TikTok";
+    if (/^\d{13,16}$/.test(id)) return "Lazada";
+    return (p && !/^[\d.\s-]*$/.test(p) && p) || "อื่นๆ";
+  }
+
+  // merge all files into one table, matching columns by header name
+  function build(){
+    const manual = parseInt($("mHeader").value, 10);
+    headers = []; rows = [];
+    const pos = new Map();
+    files.forEach(f => {
+      const h = manual >= 1 ? manual - 1 : detectHeader(f.aoa);
+      const map = (f.aoa[h] || []).map(c => {
+        const name = txt(c); if (!name) return -1;
+        if (!pos.has(name)) { pos.set(name, headers.length); headers.push(name); }
+        return pos.get(name);
+      });
+      for (let r = h + 1; r < f.aoa.length; r++) {
+        const src = f.aoa[r] || [], out = [];
+        let any = false;
+        map.forEach((to, i) => { if (to >= 0 && txt(src[i]) !== "") { out[to] = src[i]; any = true; } });
+        if (any) rows.push(out);
+      }
+    });
+    fillMapping(); compute();
+  }
+
+  function fillMapping(){
+    const opts = ['<option value="-1">— ไม่ใช้ —</option>'].concat(headers.map((h,i) => `<option value="${i}">${esc(h.slice(0,60))}</option>`)).join("");
+    const used = new Set();
+    FIELDS.forEach(f => {
+      $(f).innerHTML = opts;
+      let pick = saved.cols && saved.cols[f] != null && !(f === "mShipDate" && saved.cols[f] === "เวลาจัดส่ง") ? headers.indexOf(saved.cols[f]) : -1;
+      if (pick < 0 || used.has(pick)) {
+        pick = -1;
+        for (const p of GUESS[f]) {
+          pick = headers.findIndex((h,i) => !used.has(i) && p.test(h) && !(f !== "mSettle" && FEE_RE.test(h)) && !(f === "mPlat" && PLAT_NOT.test(h)));
+          if (pick >= 0) break;
+        }
+      }
+      if (pick >= 0) used.add(pick);
+      $(f).value = String(pick);
+    });
+    // a bare "ราคา"/"ราคาเดิม" column is a per-piece price, so multiply by quantity
+    const sIdx = parseInt($("mSales").value, 10);
+    $("mBase").value = sIdx >= 0 && /ราคา|price/i.test(headers[sIdx]) && !/รวม|total/i.test(headers[sIdx]) ? "unit" : "line";
+    // fee candidates: unclaimed columns that hold mostly numbers
+    feeSel = new Map();
+    const defSel = new Map();
+    const sample = rows.slice(0, 300);
+    const cands = [];
+    headers.forEach((h,i) => {
+      if (used.has(i)) return;
+      let filled = 0, numeric = 0;
+      sample.forEach(r => { const v = r[i]; if (txt(v) === "") return; filled++; if (typeof v === "number" || /^[\s(฿-]*[\d.,]+[\s)%]*$/.test(String(v))) numeric++; });
+      if (!filled || numeric / filled < 0.6) return;
+      cands.push(i);
+      const def = MINUS_RE.test(h) ? -1 : (FEE_RE.test(h) && !NOT_FEE_RE.test(h)) ? 1 : 0;
+      const sign = saved.signs && Object.prototype.hasOwnProperty.call(saved.signs, h) ? saved.signs[h] : def;
+      if (sign) feeSel.set(i, sign);
+      defSel.set(i, def);
+    });
+    feeCands = cands.slice();
+    if (!feeSel.size) defSel.forEach((s,i) => { if (s) feeSel.set(i, s); });
+    const wrap = $("feeChips"); wrap.innerHTML = "";
+    if (!cands.length) wrap.innerHTML = '<span class="hint">ไม่พบคอลัมน์ตัวเลขอื่นในไฟล์</span>';
+    cands.forEach(i => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = headers[i];
+      const paint = () => {
+        const s = feeSel.get(i) || 0;
+        b.setAttribute("aria-pressed", String(s !== 0)); b.dataset.sign = String(s);
+        b.title = s === 1 ? "บวกเข้าค่าธรรมเนียม" : s === -1 ? "ลบออกจากค่าธรรมเนียม" : "ไม่นับ";
+      };
+      paint();
+      b.addEventListener("click", () => {
+        const s = feeSel.get(i) || 0;
+        s === 0 ? feeSel.set(i, 1) : s === 1 ? feeSel.set(i, -1) : feeSel.delete(i);
+        paint(); persist(); compute();
+      });
+      wrap.appendChild(b);
+    });
+  }
+
+  function persist(){
+    if (isSample) return;
+    const cols = {};
+    FIELDS.forEach(f => { const i = parseInt($(f).value, 10); if (i >= 0) cols[f] = headers[i]; });
+    const signs = Object.assign({}, saved.signs || {});
+    feeCands.forEach(i => { signs[headers[i]] = feeSel.get(i) || 0; });
+    saved = {cols, signs, thr:$("mThr").value};
+    try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch(e) {}
+  }
+
+  // When the income report put a shipping adjustment on the statement but not on the order, ASC tells us which order it was.
+  // Only then is it added to that order (and only once, however often compute runs).
+  function applyAsc(){
+    platMap.forEach(a => {
+      if (a.platform !== "Lazada") return;
+      const x = ascMap.get(a.id);
+      a.ascShip = x ? -x.total : null;
+      const adj = x && Math.abs(a.ship || 0) < 0.005 && lzStmtInc.has(x.stmt) ? x.total : 0;
+      if (a.payout != null) a.payout += adj - (a.ascAdj || 0);
+      a.ascAdj = adj;
+    });
+  }
+  // unit = what the buyer paid per piece, used only when the name does not decide
+  function lzListPrice(sku, name, unit){
+    const arr = lzPrice.get(sku);
+    if (!arr || !arr.length) return null;
+    if (arr.length === 1) return arr[0].list;
+    const byName = arr.filter(x => x.name && x.name === name);
+    if (byName.length) return Math.max(...byName.map(x => x.list));
+    if (unit > 0) return arr.slice().sort((a,b) => Math.abs((a.special || a.list) - unit) - Math.abs((b.special || b.list) - unit))[0].list;
+    return Math.max(...arr.map(x => x.list));
+  }
+  let lzPriceUse = {hit:0, miss:new Set()};
+  function compute(){
+    applyAsc();
+    lzPriceUse = {hit:0, miss:new Set()};
+    const c = Object.fromEntries(FIELDS.map(f => [f, parseInt($(f).value, 10)]));
+    $("mapBox").hidden = false; $("resBox").hidden = false;
+    feeCols = [...feeSel.keys()].sort((a,b) => a - b);
+    const sg = feeCols.map(i => feeSel.get(i));
+    feeLabels = feeCols.map((i,k) => (sg[k] < 0 ? "− " : "") + headers[i]);
+    bigLabels = feeLabels.slice();
+    const warn = [];
+    const hasBig = rows.length > 0, usePlat = platMap.size > 0 && $("mSrc").value === "plat";
+    $("mSrc").disabled = !platMap.size || !hasBig;
+    $("bsMap").hidden = !hasBig; $("bsFees").hidden = !hasBig;
+    if (hasBig && c.mOrder < 0) warn.push("ยังไม่ได้เลือกคอลัมน์หมายเลขคำสั่งซื้อ");
+    if (hasBig && c.mOrig < 0 && !lzPrice.size) warn.push("ยังไม่ได้เลือกคอลัมน์ราคาเดิม จึงไม่มี % เทียบรวมค่าสินค้าราคาเดิม");
+    if (hasBig && c.mSales < 0) warn.push("ยังไม่ได้เลือกคอลัมน์รวมค่าสินค้า จึงไม่มี % เทียบรวมค่าสินค้า");
+    if (hasBig && c.mOrig >= 0 && c.mQty < 0) warn.push("ยังไม่ได้เลือกคอลัมน์จำนวน ราคาเดิมจึงถูกนับเป็น 1 ชิ้นต่อแถว");
+    const useSettle = !feeCols.length && c.mSettle >= 0;
+    if (hasBig && !feeCols.length && c.mSettle < 0) warn.push("ยังไม่ได้เลือกคอลัมน์ค่าธรรมเนียมใน STEP 2 จึงไม่มีค่าธรรมเนียม/เงินเข้าโดยประมาณ (รายงาน BigSeller) กดเลือก ค่าธรรมเนียมการจัดการ และ Transaction Fee");
+    if (useSettle) warn.push("ไม่มีคอลัมน์ค่าธรรมเนียมที่เลือก จึงคิดจาก รวมค่าสินค้า − ยอดที่ได้รับ ซึ่งอาจรวมค่าส่งและส่วนลดด้วย");
+
+    // group rows into orders; a blank order number continues the order above (merged cells)
+    const byId = new Map(); let last = null;
+    rows.forEach((row, ri) => {
+      let id = c.mOrder >= 0 ? txt(row[c.mOrder]) : "";
+      if (/^(รวม|total|ทั้งหมด)/i.test(id)) return;
+      if (!id) { if (!last) return; id = last; } else last = id;
+      let o = byId.get(id);
+      if (!o) { o = {id, seq:byId.size, raw:[], plat:"", store:"", pay:"", date:"", mark:"", ncs:"", npick:"", track:"", shipDate:"", cancel:"", cancelWhy:"", cancelBy:"", pstat:"", dateT:"", shipT:"", cancelT:""}; byId.set(id, o); }
+      if (!o.plat && c.mPlat >= 0) o.plat = txt(row[c.mPlat]);
+      if (!o.store && c.mStore >= 0) o.store = txt(row[c.mStore]);
+      if (!o.pay && c.mPay >= 0) o.pay = txt(row[c.mPay]);
+      if (!o.date && c.mDate >= 0) { o.date = normDate(row[c.mDate]); o.dateT = normDT(row[c.mDate]); }
+      // BigSeller writes "--" for an empty text cell
+      const clean = i => { const s = i >= 0 ? txt(row[i]) : ""; return /^-+$/.test(s) ? "" : s; };
+      if (!o.mark) o.mark = clean(c.mMark);
+      if (!o.ncs) o.ncs = clean(c.mNoteCS);
+      if (!o.npick) o.npick = clean(c.mNotePick);
+      if (!o.track) o.track = clean(c.mTrack);
+      if (!o.shipDate) { o.shipDate = normDate(clean(c.mShipDate)); o.shipT = normDT(clean(c.mShipDate)); }
+      if (!o.cancel) { o.cancel = normDate(clean(c.mCancel)); o.cancelT = normDT(clean(c.mCancel)); }
+      if (!o.cancelWhy) o.cancelWhy = clean(c.mCancelWhy);
+      if (!o.cancelBy) o.cancelBy = clean(c.mCancelBy);
+      if (!o.pstat) o.pstat = clean(c.mPStat);
+      o.raw.push(row);
+    });
+    orders = [...byId.values()];
+
+    // does this column repeat one order-level value on every row, or carry a value per SKU row?
+    const mode = $("mMode").value, perUnit = $("mBase").value === "unit";
+    const colNamed = n => headers.findIndex(h => hkey(h) === hkey(n));
+    const cShopV = colNamed("Voucher ของร้านค้า"), cPlatV = colNamed("Voucher");
+    const repeated = col => {
+      if (mode !== "auto") return mode === "once";
+      let total = 0, eq = 0;
+      orders.forEach(o => {
+        if (o.raw.length < 2) return;
+        const v = o.raw.map(r => Math.abs(num(r[col]))).filter(x => x > 0);
+        if (v.length < 2) return;
+        total++; if (v.every(x => Math.abs(x - v[0]) < 0.005)) eq++;
+      });
+      return total > 0 && eq / total >= 0.8;
+    };
+    const rep = {}; feeCols.concat([c.mSales, c.mSettle, c.mShip, c.mSupport]).forEach(i => { if (i >= 0) rep[i] = repeated(i); });
+    // a per-line amount such as รวมค่าสินค้า often repeats when an order holds the same item twice; only a header that names the order makes it order-level
+    if (c.mSales >= 0 && mode === "auto" && !/คำสั่งซื้อ|order/i.test(headers[c.mSales])) rep[c.mSales] = false;
+    const orderVal = (o, col) => {
+      const v = o.raw.map(r => Math.abs(num(r[col])));
+      return rep[col] ? (v.find(x => x > 0) || 0) : v.reduce((t,x) => t + x, 0);
+    };
+
+    orders.forEach(o => {
+      o.platform = platformOf(o.plat, o.store, o.id);
+      o.lines = o.raw.map(r => {
+        const qty = c.mQty >= 0 ? Math.abs(num(r[c.mQty])) : 0;
+        const price = c.mPrice >= 0 ? Math.abs(num(r[c.mPrice])) : 0;
+        const orig = c.mOrig >= 0 ? Math.abs(num(r[c.mOrig])) * (qty || 1) : 0;
+        const l = {r, sku: c.mSku >= 0 ? txt(r[c.mSku]) : "", name: c.mName >= 0 ? txt(r[c.mName]) : "", qty, price, orig, w: price * (qty || 1) || orig || qty || 1};
+        if (!(orig > 0) && o.platform === "Lazada" && lzPrice.size && l.sku) {
+          const lp = lzListPrice(l.sku, l.name, price);
+          if (lp) { l.orig = lp * (qty || 1); l.origSrc = "lz"; lzPriceUse.hit++; } else lzPriceUse.miss.add(l.sku);
+        }
+        return l;
+      }).filter(l => l.sku || l.name || o.raw.length === 1 || l.qty);
+      if (!o.lines.length) o.lines = [{r:o.raw[0], sku:"", name:"", qty:0, price:0, orig:0, w:1}];
+      const wSum = o.lines.reduce((t,l) => t + l.w, 0) || 1;
+      // sales
+      if (c.mSales >= 0 && perUnit) { o.lines.forEach(l => l.sales = Math.abs(num(l.r[c.mSales])) * (l.qty || 1)); o.sales = o.lines.reduce((t,l) => t + l.sales, 0); }
+      else if (c.mSales >= 0 && !rep[c.mSales]) { o.lines.forEach(l => l.sales = Math.abs(num(l.r[c.mSales]))); o.sales = o.lines.reduce((t,l) => t + l.sales, 0); }
+      else {
+        o.sales = c.mSales >= 0 ? orderVal(o, c.mSales) : o.lines.reduce((t,l) => t + l.price * l.qty, 0);
+        o.lines.forEach(l => l.sales = o.sales * l.w / wSum);
+      }
+      if (o.platform === "TikTok" && cShopV >= 0) {
+        o.lines.forEach(l => { if (l.orig > 0) l.sales = Math.max(0, l.orig - Math.abs(num(l.r[cShopV]))); });
+        o.sales = o.lines.reduce((t,l) => t + l.sales, 0);
+        o.tkSup = cPlatV >= 0 ? o.raw.reduce((t,r) => t + Math.abs(num(r[cPlatV])), 0) : 0;
+      }
+      const share = l => o.sales > 0 ? l.sales / o.sales : l.w / wSum;   // w falls back to รวมค่าสินค้าราคาเดิม
+      // fees per selected column
+      o.fees = feeCols.map((col,k) => sg[k] * orderVal(o, col));
+      o.lines.forEach(l => l.fees = feeCols.map((col,k) => rep[col] || o.lines.length === 1 ? o.fees[k] * share(l) : sg[k] * Math.abs(num(l.r[col]))));
+      // a per-row column that only filled the first row is really order-level: spread it
+      feeCols.forEach((col,k) => {
+        if (rep[col] || o.lines.length < 2) return;
+        const filled = o.lines.filter(l => l.fees[k] !== 0).length;
+        if (filled === 1) o.lines.forEach(l => l.fees[k] = o.fees[k] * share(l));
+      });
+      if (useSettle) {
+        o.fee = Math.max(0, o.sales - orderVal(o, c.mSettle));
+        o.lines.forEach(l => l.fee = o.fee * share(l));
+      } else {
+        o.fee = o.fees.reduce((t,x) => t + x, 0);
+        o.lines.forEach(l => l.fee = l.fees.reduce((t,x) => t + x, 0));
+      }
+      o.orig = o.lines.reduce((t,l) => t + l.orig, 0);
+      o.pct = o.sales > 0 ? o.fee / o.sales : null;
+      o.pct2 = o.orig > 0 ? o.fee / o.orig : null;
+      o.qty = o.lines.reduce((t,l) => t + l.qty, 0);
+      // money in, from the order file alone: รวมค่าสินค้า − ค่าธรรมเนียม (ซึ่งหักส่วนลดแพลตฟอร์มแล้ว) − ค่าจัดส่งที่ผู้ขายชำระ
+      o.ship = c.mShip >= 0 ? orderVal(o, c.mShip) : 0;
+      o.support = c.mSupport >= 0 ? orderVal(o, c.mSupport) : 0;
+      if (o.platform === "TikTok") { o.supInfo = (o.tkSup || 0) + o.support; o.support = 0; }
+      o.bigNet = o.sales - o.fee + o.support - o.ship;
+      // no fee figures for this order in the order file (e.g. BigSeller TikTok): the formula would only be the sale price, so leave it blank
+      if (!(feeCols.length || useSettle) || (o.fee <= 0.005 && o.sales > 0.005)) { o.bigNet = null; o.pct = o.pct2 = null; }   // fee % unknown, not 0%
+      o.shipLoss = c.mShip >= 0 ? o.ship : null;
+      o.net = o.bigNet;
+      o.big = {fees: o.fees.slice(), fee: o.fee, ship: c.mShip >= 0 ? o.ship : null, net: o.bigNet, has: o.bigNet != null};
+    });
+
+    // overlay the platforms' own numbers
+    const pctOf = o => { o.pct = o.sales > 0 ? o.fee / o.sales : null; o.pct2 = o.orig > 0 ? o.fee / o.orig : null; };
+    const mb = $("matchBox"); mb.hidden = true; joined = false;
+    platSet = new Set([...platMap.values()].map(a => a.platform));
+    balIdSet = new Set([...balMap.keys()].concat(balOther.map(x => x.id).filter(Boolean)));
+    if (!hasBig && platMap.size) {
+      // platform reports only: one row per order, no SKU breakdown
+      feeLabels = platLabels.slice();
+      orders = [...platMap.values()].map((a,i) => {
+        const fees = feeLabels.map(n => a.parts[n] || 0);
+        // Lazada's report carries SKUs per item; Shopee and TikTok give one total per order
+        const lines = a.items
+          ? [...a.items.values()].map(it => {
+              const lp = a.platform === "Lazada" && it.sku ? lzListPrice(it.sku, it.name, it.sales) : null;
+              if (a.platform === "Lazada" && lzPrice.size && it.sku) { if (lp) lzPriceUse.hit++; else lzPriceUse.miss.add(it.sku); }
+              return {sku:it.sku, name:it.name, qty:1, price:0, orig: lp || 0, origSrc: lp ? "lz" : "", sales:it.sales, fee:it.fee, fees:feeLabels.map(n => it.parts[n] || 0)};
+            })
+          : [{sku:"", name:"", qty:0, price:0, orig:a.orig, sales:a.sales, fee:a.fee, fees}];
+        const o = {id:a.id, seq:i, plat:a.platform, platform:a.platform, store:"", pay:a.pay || "", date:a.date || "", dateT:a.dateT || "", payRate:a.payRate || "", fees, fee:a.fee, orig: a.items ? 0 : a.orig, sales:a.sales, qty:a.items ? a.items.size : 0, act:a, bigFee:null, bigNet:null, shipLoss: a.ascShip != null ? a.ascShip : a.ship != null ? a.ship : null, support: a.support || 0, supInfo: a.supInfo || 0, net: a.payout != null ? a.payout : a.sales - a.fee, lines};
+        if (a.items) o.orig = lines.reduce((t,l) => t + l.orig, 0);
+        if (a.refund > 0.005) {
+          o.refund = a.refund;
+          if (a.items) { o.refAll = false; o.refNote = ""; lines.forEach((l,k) => { l.rq = [...a.items.values()][k].refund > 0.005 ? 1 : 0; }); }
+          else markRefund(o, o.sales + a.refund);
+        }
+        pctOf(o); return o;
+      });
+      warn.push("ยังไม่มีไฟล์ BigSeller: Shopee และ TikTok แสดงได้ระดับคำสั่งซื้อเท่านั้น (Lazada มี SKU ในรายงานการเงินอยู่แล้ว) อัปโหลดไฟล์ BigSeller เพิ่มเพื่อแจกแจงตาม SKU และเพื่อให้มีราคาเดิมของ Lazada");
+    } else if (platMap.size) {
+      if (usePlat) feeLabels = platLabels.concat([BIG_ONLY]);
+      let hit = 0, actSum = 0, bigSum = 0, netN = 0, netHit = 0, netBig = 0, netAct = 0;
+      const bigHasFees = feeCols.length > 0 || useSettle;
+      joined = true;
+      orders.forEach(o => {
+        o.bigFee = bigHasFees ? o.fee : null; o.act = platMap.get(o.id) || null;
+        if (!o.date && o.act && o.act.date) { o.date = o.act.date; o.dateT = o.act.dateT || o.act.date; }
+        if (o.act && o.platform === "TikTok") {
+          if (o.act.salesH > 0 && o.sales > 0 && Math.abs(o.sales - o.act.salesH) > 0.005) {
+            const f = o.act.salesH / o.sales;
+            o.lines.forEach(l => { l.sales *= f; });
+            o.sales = o.act.salesH;
+            if (o.bigFee != null) { o.lines.forEach(l => { const s = o.sales > 0 ? l.sales / o.sales : 0; l.fees = o.fees.map(x => x * s); l.fee = o.fee * s; }); }
+          }
+          if (o.act.supInfo != null) o.supInfo = o.act.supInfo;
+          if (o.bigNet != null) o.bigNet = o.sales - o.fee - o.ship; o.net = o.bigNet; pctOf(o);
+        }
+        if (o.act && o.act.pay) { o.pay = o.act.pay; o.payRate = o.act.payRate || ""; }   // the platform report is more detailed than the order file
+        const paid = o.act && o.act.payout != null ? o.act.payout : null;
+        if (paid != null && bigHasFees && o.bigNet != null) { netN++; netBig += o.bigNet; netAct += paid; if (Math.abs(o.bigNet - paid) <= 1) netHit++; }
+        if (usePlat && paid != null) o.net = paid;
+        if (o.act && o.act.ship != null) o.shipLoss = o.act.ship;
+        if (o.act && o.act.ascShip != null) o.shipLoss = o.act.ascShip;
+        else if (!o.act && ascMap.has(o.id)) o.shipLoss = -ascMap.get(o.id).total;
+        if (o.act && o.act.support != null) o.support = o.act.support;
+        if (o.act && o.act.refund > 0.005) { o.refund = o.act.refund; markRefund(o, o.sales); }   // the platform's own payout is the truth when we have it
+        if (o.act) { hit++; actSum += o.act.fee; bigSum += o.bigFee || 0; o.platform = o.act.platform; }
+        if (!usePlat) return;
+        const n = o.lines.length;
+        const share = l => o.sales > 0 ? l.sales / o.sales : o.orig > 0 ? l.orig / o.orig : 1 / n;
+        o.fees = o.act ? platLabels.map(k => o.act.parts[k] || 0).concat([0]) : platLabels.map(() => 0).concat([o.fee]);
+        if (o.act) o.fee = o.act.fee;
+        o.lines.forEach(l => { const s = share(l); l.fees = o.fees.map(x => x * s); l.fee = o.fee * s; });
+        // fee unknown (not in the platform report, and the order file has no fee columns): keep it out of every %
+        if (!o.act && !bigHasFees) { o.sales = o.orig = 0; o.net = null; o.lines.forEach(l => { l.sales = l.orig = 0; }); }
+        pctOf(o);
+      });
+      const d = bigSum - actSum;
+      mb.hidden = false;
+      mb.textContent = `จับคู่กับรายงานแพลตฟอร์มได้ ${nf(hit)} จาก ${nf(orders.length)} คำสั่งซื้อ` + (!hit ? " · ตรวจว่าช่วงวันที่และร้านตรงกัน" : ` · ในคำสั่งซื้อที่จับคู่ได้ แพลตฟอร์มหักจริง ${baht(r2(actSum))}` + (bigHasFees ? ` ส่วนไฟล์ด้านบนคำนวณได้ ${baht(r2(bigSum))} (${Math.abs(d) < 0.5 ? "ตรงกัน" : (d > 0 ? "สูงกว่า " : "ต่ำกว่า ") + baht(r2(Math.abs(d)))})` : ""));
+      {
+        const bigIds = new Set(orders.map(o => o.id));
+        const cnt = f => orders.reduce((a,o) => { const v = f(o); if (v === true) a[0]++; else if (v === false) a[1]++; return a; }, [0, 0]);
+        const [iy, inn] = cnt(incOf), incOnly = [...platMap.keys()].filter(id => !bigIds.has(id)).length;
+        mb.textContent += ` · ชนหมายเลขคำสั่งซื้อกับ Income: เจอ ${nf(iy)} ไม่เจอ ${nf(inn)}` + (incOnly ? ` (มีใน Income แต่ไม่มีในไฟล์ด้านบน ${nf(incOnly)})` : "");
+        if (balMap.size) {
+          const [by, bn] = cnt(balFound), balOnly = [...balIdSet].filter(id => !bigIds.has(id)).length;
+          mb.textContent += ` · ชนกับ Seller Balance: เจอ ${nf(by)} ไม่เจอ ${nf(bn)}` + (balOnly ? ` (มีใน Balance แต่ไม่มีในไฟล์ด้านบน ${nf(balOnly)})` : "");
+        }
+      }
+      if (netN) mb.textContent += ` · เงินเข้าตามสูตรจากไฟล์ด้านบนตรงกับยอดโอนจริง ${nf(netHit)} จาก ${nf(netN)} คำสั่งซื้อ (สูตรรวม ${money(r2(netBig))} เทียบยอดโอนจริง ${money(r2(netAct))})`;
+    }
+
+    if (lzPrice.size && (lzPriceUse.hit || lzPriceUse.miss.size)) warn.push(`ราคาเดิม Lazada จากไฟล์รายการสินค้า ${nf(lzPriceUse.hit)} แถว (เป็นราคา ณ วันที่ส่งออกไฟล์)` + (lzPriceUse.miss.size ? ` · ไม่พบในรายการสินค้า ${nf(lzPriceUse.miss.size)} SKU: ${[...lzPriceUse.miss].slice(0, 10).join(", ")}${lzPriceUse.miss.size > 10 ? " …" : ""}` : ""));
+    const w = $("resWarn"); w.hidden = !warn.length; w.textContent = warn.join(" · ");
+    const plats = [...new Set(orders.map(o => o.platform))];
+    const keep = $("fPlat").value;
+    $("fPlat").innerHTML = '<option value="">ทั้งหมด</option>' + plats.map(p => `<option>${esc(p)}</option>`).join("");
+    if (plats.includes(keep)) $("fPlat").value = keep;
+    const seenB = new Set(); orders.forEach(o => o.lines.forEach(l => seenB.add(br(l))));
+    const brands = BRANDS.map(x => x[0]).concat([NO_BRAND]).filter(b => seenB.has(b)), keepB = $("fBrand").value;
+    $("fBrand").innerHTML = '<option value="">ทั้งหมด</option>' + brands.map(b => `<option>${esc(b)}</option>`).join("");
+    if (brands.includes(keepB)) $("fBrand").value = keepB;
+    const payN = new Map(); orders.forEach(o => { if (o.pay) payN.set(o.pay, (payN.get(o.pay) || 0) + 1); });
+    const pays = [...payN.keys()].sort((a,b) => a.localeCompare(b, "th", {numeric:true})), keepP = $("fPay").value;
+    payList = pays;
+    const whyN = new Map(); orders.forEach(o => { const w = cancelWhyOf(o); if (w) whyN.set(w, (whyN.get(w) || 0) + 1); });
+    whyList = [...whyN.keys()].sort((a,b) => whyN.get(b) - whyN.get(a)).map(w => [w, `${w} (${nf(whyN.get(w))})`]);
+    const cnt = f => { const m = new Map(); orders.forEach(o => { const x = pstOf(o); if (x) f(x).forEach(v => m.set(v, (m.get(v) || 0) + 1)); }); return [...m.keys()].sort((a,b) => m.get(b) - m.get(a)).map(v => [v, `${stTh(v)} (${nf(m.get(v))})`]); };
+    pstList = cnt(x => [...x.st]); pwhyList = cnt(x => [...x.why]);
+    const psN = new Map(); orders.forEach(o => { if (o.pstat) psN.set(o.pstat, (psN.get(o.pstat) || 0) + 1); });
+    pstatList = [...psN.keys()].sort((a,b) => psN.get(b) - psN.get(a)).map(w => [w, `${stTh(w)} (${nf(psN.get(w))})`]);
+    const markN = new Map(); orders.forEach(o => tagsOf(o).forEach(m => markN.set(m, (markN.get(m) || 0) + 1)));
+    markList = [...markN.keys()].sort((a,b) => markN.get(b) - markN.get(a)).map(m => [m, `${m} (${nf(markN.get(m))})`]);
+    dateList = [...new Set(orders.map(o => (o.date || "").slice(0, 7)).filter(x => /^\d{4}-\d{2}$/.test(x)))].sort();
+    $("fPay").innerHTML = '<option value="">ทั้งหมด</option>' + pays.map(x => `<option value="${esc(x)}">${esc(x)} (${nf(payN.get(x))})</option>`).join("");
+    if (pays.includes(keepP)) $("fPay").value = keepP;
+    summary(); render(); renderBal(); renderLzBal();
+  }
+
+  const thr = () => { const t = parseFloat($("mThr").value); return isFinite(t) ? t / 100 : Infinity; };
+  const pctCell = (p, bar) => {
+    const hi = p != null && p > thr();
+    return `<span class="pct${hi ? " hi" : ""}">${pc(p)}</span>` + (bar && p != null ? `<span class="bar${hi ? " hi" : ""}"><i style="width:${Math.min(100, p / 0.4 * 100).toFixed(1)}%"></i></span>` : "");
+  };
+
+  function summary(){
+    const sales = orders.reduce((t,o) => t + o.sales, 0), fee = orders.reduce((t,o) => t + o.fee, 0), orig = orders.reduce((t,o) => t + o.orig, 0);
+    const hi = orders.filter(o => Math.max(o.pct ?? 0, o.pct2 ?? 0) > thr());
+    const feeO = orders.reduce((t,o) => t + (o.orig > 0 ? o.fee : 0), 0), feeS = orders.reduce((t,o) => t + (o.sales > 0 ? o.fee : 0), 0);
+    $("sPct2").textContent = pc(orig > 0 ? feeO / orig : null);
+    $("sPct2N").textContent = `รวมค่าสินค้าราคาเดิม รวม ${baht(r2(orig))}`;
+    $("sPct").textContent = pc(sales > 0 ? feeS / sales : null);
+    $("sPctN").textContent = `รวมค่าสินค้า ${baht(r2(sales))}`;
+    $("sFee").textContent = baht(r2(fee));
+    $("sFeeN").textContent = `${nf(orders.length)} คำสั่งซื้อ · ${nf(orders.reduce((t,o) => t + o.qty, 0))} ชิ้น`;
+    $("sHi").textContent = nf(hi.length);
+    $("sHiN").textContent = `เกิน ${$("mThr").value || 0}% ในฐานใดฐานหนึ่ง` + (orders.length ? ` · ${(hi.length / orders.length * 100).toFixed(1)}% ของคำสั่งซื้อ` : "");
+
+    const by = new Map();
+    orders.forEach(o => {
+      let g = by.get(o.platform);
+      if (!g) { g = {n:0, sales:0, orig:0, fee:0, ship:0, shipN:0, sup:0, feeO:0, feeS:0, fees:feeLabels.map(() => 0), min:null, max:null}; by.set(o.platform, g); }
+      g.n++; g.sales += o.sales; g.orig += o.orig; g.fee += o.fee; g.ship += o.shipLoss || 0; g.sup += o.support || 0; g.supI = (g.supI || 0) + (o.supInfo || 0); if (o.shipLoss > 0.005) g.shipN++; if (o.orig > 0) g.feeO += o.fee; if (o.sales > 0) g.feeS += o.fee; o.fees.forEach((x,k) => g.fees[k] += x);
+      if (o.pct != null) { g.min = g.min == null ? o.pct : Math.min(g.min, o.pct); g.max = g.max == null ? o.pct : Math.max(g.max, o.pct); }
+    });
+    $("platHead").innerHTML = `<tr><th>แพลตฟอร์ม</th><th class="n">คำสั่งซื้อ</th><th class="n">รวมค่าสินค้าราคาเดิม</th><th class="n">รวมค่าสินค้า</th><th class="n">ค่าธรรมเนียม</th><th class="n">ค่าส่งที่ร้านเสีย (สุทธิ)</th><th class="n">ส่วนลดแพลตฟอร์มสนับสนุน (+)</th><th class="n">% เทียบราคาเดิม</th><th class="n">% เทียบรวมค่าสินค้า</th><th class="n">% ค่าธรรมเนียมสุทธิ</th><th class="n">ต่ำสุด–สูงสุด (รวมค่าสินค้า)</th>${feeLabels.map(h => `<th class="n">${esc(h)} ÷ รวมค่าสินค้า</th>`).join("")}</tr>`;
+    $("platBody").innerHTML = [...by.entries()].sort((a,b) => b[1].sales - a[1].sales).map(([p,g]) =>
+      `<tr><td><span class="tag">${esc(p)}</span></td><td class="n">${nf(g.n)}</td><td class="n">${baht(r2(g.orig))}</td><td class="n">${baht(r2(g.sales))}</td><td class="n">${baht(r2(g.fee))}</td><td class="n">${money(r2(g.ship))}<br><span class="sub">${nf(g.shipN)} คำสั่งซื้อที่เสีย</span></td><td class="n">${g.sup > 0.005 ? `<span class="pct plus">+${baht(r2(g.sup))}</span>` : g.supI > 0.005 ? `${baht(r2(g.supI))}<br><span class="sub">รวมในรวมค่าสินค้าแล้ว</span>` : "–"}</td><td class="n">${pctCell(g.orig > 0 ? g.feeO / g.orig : null, true)}</td><td class="n">${pctCell(g.sales > 0 ? g.feeS / g.sales : null, true)}</td><td class="n">${pctCell(g.sales > 0 ? (g.feeS - g.sup) / g.sales : null, true)}</td><td class="n">${g.min == null ? "–" : pc(g.min) + " – " + pc(g.max)}</td>${g.fees.map(x => `<td class="n">${pc(g.sales > 0 ? x / g.sales : null)}</td>`).join("")}</tr>`
+    ).join("") || `<tr><td colspan="11" class="sub">ยังไม่มีข้อมูล</td></tr>`;
+  }
+
+  // several order or tracking numbers pasted at once (space, comma or line separated): match any of them exactly
+  function idTerms(){
+    const parts = $("fSearch").value.split(/[\s,;]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+    return parts.length >= 2 && parts.every(s => /^[a-z0-9]{8,}$/i.test(s)) ? parts : null;
+  }
+  function filteredOrders(){
+    const p = $("fPlat").value, q = $("fSearch").value.trim().toLowerCase();
+    const terms = idTerms(), termSet = terms ? new Set(terms) : null;
+    const fb = $("fBrand").value;
+    const fp = $("fPay").value;
+    return orders.filter(o => (!p || o.platform === p) && (!fp || o.pay === fp) && passOrd(o) && passLines(o) && (!fb || o.lines.some(l => br(l) === fb)) && (termSet ? (termSet.has(o.id.toLowerCase()) || termSet.has(trackOf(o).toLowerCase())) : !q || o.id.toLowerCase().includes(q) || o.store.toLowerCase().includes(q) || o.pay.toLowerCase().includes(q) || [o.mark, o.ncs, o.npick, trackOf(o)].join(" ").toLowerCase().includes(q) || o.lines.some(l => l.sku.toLowerCase().includes(q) || l.name.toLowerCase().includes(q))));
+  }
+  function sorter(){
+    if (hSort) {
+      const k = hSort.key, d = hSort.dir;
+      const val = x => {
+        if (k === "pay") return x.pay ?? "";
+        if (k === "pnet") return x.lines ? netFee(x) : null;
+        if (k === "date") return x.dateT || x.date || "";
+        if (k === "mark" || k === "ncs" || k === "npick") return x[k] ?? "";
+        if (k === "track") return x.lines ? trackOf(x) : "";
+        if (k === "cancel") return x.lines ? cancelTOf(x) : "";
+        if (k === "cwhy") return x.lines ? cancelWhyOf(x) : "";
+        if (k === "pstat") return x.lines ? x.pstat || "" : "";
+        if (k === "rst") return x.lines ? pstText(x) : "";
+        if (k === "rwhy") return x.lines ? pwhyText(x) : "";
+        if (k === "rqT" || k === "rfT" || k === "bkT") return (retInfo.get(x.id) || {})[{rqT:"reqT", rfT:"refT", bkT:"backT"}[k]] || "";
+        if (k === "shipDate") return x.shipT || x.shipDate || "";
+        if (k === "paid") return x.lines ? transferOf(x).date || "" : "";
+        if (k === "inc" || k === "balF") { if (!x.lines) return 0; const v = k === "inc" ? incOf(x) : balFound(x); return v === false ? 2 : v === true ? 1 : 0; }
+        if (k === "dsc") return x.lines ? dsc(x) : null;
+        if (k === "pin") return x.lines ? pin(x) : null;
+        if (k === "bal") return x.lines ? ({"ไม่ตรง":2, "ตรง":1}[balOf(x).st] || 0) : 0;
+        if (k === "sku") return x.sku ?? x.lines[0].sku ?? "";
+        if (!x.lines) return x[k === "lp" ? "pct" : k === "lp2" ? "pct2" : k];   // SKU summary rows have no lines
+        if (k !== "lp" && k !== "lp2") return x[k];
+        // per-SKU % columns: rank an order by its highest (or, ascending, lowest) SKU line
+        const v = x.lines.map(l => linePct(l, k)).filter(p => p != null);
+        return v.length ? (d < 0 ? Math.max(...v) : Math.min(...v)) : null;
+      };
+      return (a,b) => {
+        const va = val(a), vb = val(b);
+        if (k === "sku" || k === "pay" || k === "date" || k === "mark" || k === "ncs" || k === "npick" || k === "track" || k === "cancel" || k === "cwhy" || k === "pstat" || k === "rst" || k === "rwhy" || k === "shipDate" || k === "paid" || k === "rqT" || k === "rfT" || k === "bkT") return d * String(va).localeCompare(String(vb), "th", {numeric:true});
+        if (va == null) return vb == null ? 0 : 1;
+        if (vb == null) return -1;
+        return d * (va - vb);
+      };
+    }
+    const s = $("fSort").value;
+    const gap = x => x.act && x.bigFee != null ? Math.abs(x.bigFee - x.act.fee) : -1;
+    if (s === "diff") return (a,b) => gap(b) - gap(a);
+    return s === "fee" ? (a,b) => b.fee - a.fee : s === "sales" ? (a,b) => b.sales - a.sales : s === "file" ? (a,b) => a.seq - b.seq : s === "pct" ? (a,b) => (b.pct ?? -1) - (a.pct ?? -1) : (a,b) => (b.pct2 ?? -1) - (a.pct2 ?? -1);
+  }
+  function skuList(){
+    const p = $("fPlat").value, q = $("fSearch").value.trim().toLowerCase();
+    const by = new Map(), fb = $("fBrand").value, fp = $("fPay").value; let seq = 0;
+    orders.forEach(o => {
+      if ((p && o.platform !== p) || (fp && o.pay !== fp) || !passOrd(o)) return;
+      const seen = new Set();
+      o.lines.forEach(l => {
+        if ((fb && br(l) !== fb) || !passLine(o, l)) return;
+        const key = o.platform + "\u0001" + (l.sku || l.name || "(ไม่มี SKU)");
+        let g = by.get(key);
+        if (!g) { g = {platform:o.platform, sku:l.sku || "(ไม่มี SKU)", name:l.name, brand:br(l), qty:0, sales:0, orig:0, origK:0, fee:0, net:0, feeO:0, feeS:0, fees:feeLabels.map(() => 0), n:0, seq:seq++}; by.set(key, g); }
+        g.qty += l.qty; g.sales += l.sales; g.orig += l.orig; g.fee += l.fee; g.net += lineNet(o, l) || 0; g.origK += origKeptOf(l); { const pv = pin(o); if (pv != null && origKeptOf(l) > 0.005) { g.pinW = (g.pinW || 0) + pv * origKeptOf(l); g.pinWB = (g.pinWB || 0) + origKeptOf(l); } } if (l.orig > 0) g.feeO += l.fee; if (l.sales > 0) g.feeS += l.fee; l.fees.forEach((x,k) => g.fees[k] += x);
+        if (!seen.has(key)) { seen.add(key); g.n++; }
+      });
+    });
+    const list = [...by.values()].filter(g => !q || g.sku.toLowerCase().includes(q) || g.name.toLowerCase().includes(q));
+    list.forEach(g => { g.pct = g.sales > 0 ? g.feeS / g.sales : null; g.pct2 = g.orig > 0 ? g.feeO / g.orig : null; });
+    return list.filter(passGroup).sort(sorter());
+  }
+
+  let selA = null, selB = null, dragSel = false;   // selected range of order rows (indexes into the rendered list)
+  // money the shop keeps (รวมค่าสินค้า − ค่าธรรมเนียม) as a share of the original-price total, per order
+  // The platform reports give a refund amount per order, not the SKU. Find the set of pieces whose prices add up to it.
+  function markRefund(o, salesBefore){
+    const amt = o.refund;
+    o.refAll = false; o.refNote = "";
+    o.lines.forEach(l => { l.rq = 0; });
+    o.origKept = o.orig * (1 - (salesBefore > 0 ? Math.min(1, amt / salesBefore) : 1));
+    o.refSrc = "";
+    const rep = retMap.get(o.id);
+    if (rep) {
+      // the report names the SKU; accept it when those pieces add up to the refunded amount
+      let s = 0, pieces = 0, all = 0;
+      o.lines.forEach(l => { const q = Math.round(l.qty) || 1; l.rq = Math.min(q, rep.get(l.sku) || 0); s += l.sales / q * l.rq; pieces += l.rq; all += q; });
+      if (pieces && Math.abs(s - amt) < 0.51) {
+        o.refSrc = "report"; o.refAll = pieces === all;
+        o.origKept = o.lines.reduce((t,l) => t + l.orig * (1 - l.rq / (Math.round(l.qty) || 1)), 0);
+        return;
+      }
+      o.lines.forEach(l => { l.rq = 0; });
+    }
+    if (Math.abs(amt - salesBefore) < 0.51) { o.refAll = true; o.origKept = 0; o.lines.forEach(l => { l.rq = Math.round(l.qty) || 1; }); return; }
+    if (!o.lines.some(l => l.sku || l.name)) { o.refNote = "คืนบางส่วน ไม่มีข้อมูล SKU"; return; }
+    const units = [];
+    o.lines.forEach((l,j) => { const q = Math.round(l.qty) || 1; for (let k = 0; k < q; k++) units.push([j, l.sales / q]); });
+    if (units.length > 16) { o.refNote = "คืนบางส่วน ระบุ SKU ไม่ได้"; return; }
+    const sols = new Map();
+    for (let m = 1; m < (1 << units.length); m++) {
+      let s = 0; const cnt = {};
+      for (let b = 0; b < units.length; b++) if (m & (1 << b)) { s += units[b][1]; cnt[units[b][0]] = (cnt[units[b][0]] || 0) + 1; }
+      if (Math.abs(s - amt) < 0.51) sols.set(JSON.stringify(Object.entries(cnt).sort()), cnt);
+    }
+    if (sols.size === 1) {
+      Object.entries([...sols.values()][0]).forEach(([j,n]) => { o.lines[j].rq = n; });
+      o.origKept = o.lines.reduce((t,l) => t + l.orig * (1 - l.rq / (Math.round(l.qty) || 1)), 0);
+    } else if (sols.size > 1) {
+      const ns = new Set([...sols.values()].map(c => Object.values(c).reduce((t,x) => t + x, 0)));
+      o.refNote = `คืน ${ns.size === 1 ? [...ns][0] + " ชิ้น " : "บางส่วน "}แต่หลาย SKU ราคาเท่ากัน ระบุไม่ได้ว่าชิ้นไหน`;
+    } else o.refNote = "คืนบางส่วน ยอดไม่ตรงกับราคาสินค้าชิ้นใด";
+  }
+  const refItems = o => o.lines.filter(l => l.rq > 0).map(l => `${l.sku || l.name || "สินค้า"} ×${l.rq}`);
+  const refText = o => !o.refund ? "" : (o.refAll ? "คืนทั้งคำสั่งซื้อ: " : "") + (o.refNote || refItems(o).join(", "));
+  const refCell = (o, span) => `<td class="grp ref" rowspan="${span}">${!o.refund ? "–" : `<span class="tag bad">คืนเงิน ${money(r2(o.refund))}</span><br><span class="sub">${o.refAll ? "ทั้งคำสั่งซื้อ<br>" : ""}${o.refNote ? esc(o.refNote) : refItems(o).map(esc).join("<br>")}${o.refNote ? "" : `<br>${o.refSrc === "report" ? "ตามรายงานคืนสินค้า" : "คำนวณจากยอดเงินคืน"}`}</span><br><span class="sub ship">${shipNote(o).map(b => typeof b === "string" ? esc(b) : b.html).join("<br>")}</span>`}</td>`;
+  // seller discount as a share of the original price; with the fee % and the money-in % it accounts for 100% of the original price
+  const dsc = o => o.orig > 0 && o.sales > 0 ? (o.orig - o.sales) / o.orig : null;
+  // whatever is left over: discounts the platform funds (+), extra shipping (−), rounding
+  const restPct = o => o.refund || dsc(o) == null || o.pct2 == null || pin(o) == null ? null : 1 - dsc(o) - o.pct2 - pin(o) + (o.support || 0) / o.orig;
+  const dscCell = (o, span) => {
+    const d = dsc(o), rest = restPct(o);
+    return `<td class="n grp" rowspan="${span}"><span class="pct">${pc(d)}</span>${d == null ? "" : `<br><span class="sub">${baht(r2(o.orig - o.sales))} / ${baht(r2(o.orig))}</span>`}${rest != null && Math.abs(rest) >= 0.0005 ? `<br><span class="sub" title="ส่วนที่เหลือหลังรวม ส่วนลดผู้ขาย + ค่าธรรมเนียม + เงินเข้า เช่น ส่วนลดที่แพลตฟอร์มออกให้ ค่าส่งที่ถูกหักเพิ่ม หรือการปัดเศษ">รายการอื่น ${rest > 0 ? "−" : "+"}${(Math.abs(rest) * 100).toFixed(2)}%</span>` : ""}</td>`;
+  };
+  const ascNote = o => { const x = ascMap.get(o.id); if (!x) return ""; return `<br><span class="sub" title="ลูกค้าจ่าย ${r2(x.cust)} · Lazada ออกให้ ${r2(x.lzv)} · Lazada เก็บ ${r2(x.charged)}">${Math.abs(x.wrong) > 0.005 ? `น้ำหนักไม่ตรง ${baht(r2(Math.abs(x.wrong)))}` : "ตามไฟล์ ASC"}</span>`; };
+  const shipCell = (o, span) => {
+    const v = o.shipLoss;
+    return `<td class="n grp" rowspan="${span}">${v == null || Math.abs(v) < 0.005 ? "–" : v > 0 ? `<span class="pct hi">${baht(r2(v))}</span>${ascNote(o)}` : `<span class="pct">+${baht(r2(-v))}</span><br><span class="sub">ได้รับคืน</span>`}</td>`;
+  };
+  // is this order number from the order file also in the income report / in Seller Balance? null = nothing to compare against
+  const incOf = o => !joined || !platSet.has(o.platform) ? null : !!o.act;
+  const balFound = o => {
+    if (!joined) return null;
+    if (o.platform === "Lazada") { if (!lzStmtAmt.size) return null; const a = lzAct(o); return !!(a && a.stmts && [...a.stmts].some(c => lzStmtAmt.has(c))); }
+    return !balMap.size || o.platform !== "Shopee" ? null : balIdSet.has(o.id);
+  };
+  const foundCell = (v, span) => `<td class="grp" rowspan="${span}">${v == null ? "–" : `<span class="tag${v ? "" : " bad"}">${v ? "เจอ" : "ไม่เจอ"}</span>`}</td>`;
+  const supCell = (o, span) => `<td class="n grp" rowspan="${span}">${o.support > 0.005 ? `<span class="pct plus">+${baht(r2(o.support))}</span>${o.orig > 0 ? `<br><span class="sub">${pc(o.support / o.orig)} ของราคาเดิม</span>` : ""}` : o.supInfo > 0.005 ? `<span class="pct">${baht(r2(o.supInfo))}</span><br><span class="sub" title="TikTok จ่ายส่วนนี้รวมอยู่ในรวมค่าสินค้าแล้ว ไม่ได้บวกเพิ่มในเงินเข้า">รวมในรวมค่าสินค้าแล้ว</span>` : "–"}</td>`;
+  const tagsOf = o => (o.mark || "").split(/\s*,\s*/).filter(Boolean);
+  // fee after the platform-funded discount the shop got back, as a share of รวมค่าสินค้า
+  const netFee = o => o.sales > 0 && o.pct != null ? (o.fee - (o.support || 0)) / o.sales : null;
+  const trackOf = o => o.track || (retInfo.get(o.id) || {}).sellerTrack || "";
+  // 17TRACK recognises SPX, Flash, Kerry, J&T and Thailand Post numbers from the number alone
+  const trackLink = n => `<a class="trk" href="https://t.17track.net/th#nums=${encodeURIComponent(n)}" target="_blank" rel="noopener noreferrer" title="เปิดดูสถานะพัสดุใน 17TRACK">${esc(n)}</a>`;
+  const trackCell = (o, span) => `<td class="grp odate" rowspan="${span}">${trackOf(o) ? trackLink(trackOf(o)) : "–"}</td>`;
+  // was the refunded order shipped? a tracking number means the parcel went out
+  const shipNote = o => {
+    const ri = retInfo.get(o.id) || {}, bits = [];
+    bits.push(trackOf(o) ? "ส่งของแล้ว" : "ไม่มีเลขแทรคกิ้ง อาจยกเลิกก่อนส่ง");
+    if (ri.offer) bits.push(ri.offer);
+    if (ri.returnTrack) bits.push({html:`ส่งคืน: ${trackLink(ri.returnTrack)}${ri.returnStatus ? ` (${esc(ri.returnStatus)})` : ""}`});
+    return bits;
+  };
+  const cancelOf = o => o.cancel || (cancelMap.get(o.id) || {}).date || "";
+  const cancelTOf = o => o.cancelT || (cancelMap.get(o.id) || {}).dt || cancelOf(o);
+  const cancelWhyOf = o => o.cancelWhy || (cancelMap.get(o.id) || {}).status || "";
+  const cancelCell = (o, span) => `<td class="grp odate" rowspan="${span}">${cancelOf(o) ? `<span class="pct hi">${esc(cancelTOf(o))}</span>` : "–"}</td>`;
+  const retCells = (o, span) => { const ri = retInfo.get(o.id) || {}; return [ri.reqT, ri.refT, ri.backT].map(v => `<td class="grp odate" rowspan="${span}">${esc(v || "–")}</td>`).join(""); };
+  const pstCells = (o, span) => {
+    const x = pstOf(o);
+    if (!x) return `<td class="grp note" rowspan="${span}">–</td><td class="grp note" rowspan="${span}">–</td>`;
+    const st = [...x.st].map(s => `<span class="tag${BAD_ST.test(s) ? " bad" : ""}">${esc(stTh(s))}</span>`).join(" ");
+    const extra = [x.by.size ? `โดย: ${[...x.by].map(stTh).join(", ")}` : "", [...x.detail].join(" · ")].filter(Boolean).join("<br>");
+    return `<td class="grp note" rowspan="${span}">${st || "–"}<br><span class="sub">${esc(x.platform)}</span></td><td class="grp note" rowspan="${span}">${x.why.size ? esc([...x.why].join(", ")) : "–"}${extra ? `<br><span class="sub">${esc(extra).replace(/&lt;br&gt;/g, "<br>")}</span>` : ""}</td>`;
+  };
+  const whyCell = (o, span) => `<td class="grp note" rowspan="${span}">${cancelWhyOf(o) ? esc(cancelWhyOf(o)) : "–"}${o.cancelBy ? `<br><span class="sub">ยกเลิกโดย: ${esc(o.cancelBy)}</span>` : ""}</td>`;
+  // when the money reached the seller balance: Shopee Seller Balance, Lazada balance (by statement) or TikTok settlement
+  const transferOf = o => {
+    if (o.platform === "Shopee") { const b = balMap.get(o.id); return b && b.date ? {date: normDT(b.date), src:"Seller Balance"} : {}; }
+    const a = o.act || platMap.get(o.id); if (!a) return {};
+    if (o.platform === "Lazada") {
+      const paid = [...(a.stmts || [])].map(s => lzStmtPaid.get(s)).filter(Boolean).sort().pop();
+      if (paid) return {date: paid, src:"Lazada Seller Balance"};
+      return a.credited ? {date: a.credited, src:"เข้ายอดของฉัน (Lazada)"} : {};
+    }
+    if (o.platform === "TikTok" && a.paidAt) return {date: a.paidAt, src:"ชำระคำสั่งซื้อ (TikTok)"};
+    return {};
+  };
+  const netIn = o => o.net;
+  // a SKU line's share of the order's money in (the real payout when the platform report has it), so the lines add up to the order
+  const lineNet = (o, l) => {
+    if (o.net == null) return null;
+    if (o.refund && !o.refAll && !o.refNote) {
+      const kept = x => x.sales * (1 - (x.rq || 0) / (Math.round(x.qty) || 1));
+      const tot = o.lines.reduce((t,x) => t + kept(x), 0);
+      if (tot > 0) return o.net * kept(l) / tot;
+    }
+    const s = o.sales > 0 ? l.sales / o.sales : o.orig > 0 ? l.orig / o.orig : 1 / o.lines.length;
+    return o.net * s;
+  };
+  const pinBase = o => o.refund && o.origKept != null ? o.origKept : o.orig;
+  const pin = o => pinBase(o) > 0.005 && o.net != null ? o.net / pinBase(o) : null;
+  // brand is read from the product name; when several brand words appear, the one written first wins
+  const BRANDS = [
+    ["WARRIX", /warrix|วอริกซ์|วาริกซ์/i], ["GRAND", /grand\s*sport|แกรนด์\s*สปอร์ต|(?<![a-z])grand(?![a-z])/i], ["CADENZA", /cadenza/i],
+    ["EGO", /(?<![a-z])ego(?![a-z])/i], ["H3", /(?<![a-z0-9])h3(?![a-z0-9])/i], ["IMANE", /imane/i], ["BCS", /(?<![a-z])bcs(?![a-z])/i],
+    ["PEGAN", /pegan/i], ["FIT JUNCTION", /fit\s*junction|ฟิต\s*จั(ง|งก์)ชั่น/i], ["FLYHAWK", /fly\s*hawk|ฟลาย\s*ฮอว์?ก/i], ["SPORT DAY", /sport\s*day|สปอร์ต\s*เดย์/i]
+  ];
+  const NO_BRAND = "อื่นๆ";
+  const brandOf = name => {
+    let best = NO_BRAND, pos = Infinity;
+    BRANDS.forEach(([b, re]) => { const m = re.exec(name || ""); if (m && m.index < pos) { pos = m.index; best = b; } });
+    return best;
+  };
+  const br = l => l.brand || (l.brand = brandOf(l.name));
+  const BRAND_MIN = {"WARRIX":0.50, "CADENZA":0.55, "FLYHAWK":0.58, "PEGAN":0.58, "SPORT DAY":0.58, "GRAND":0.59, "EGO":0.60, "H3":0.60, "IMANE":0.60, "BCS":0.60, "FIT JUNCTION":0.38};
+  const origKeptOf = l => l.orig * (1 - (l.rq || 0) / (Math.round(l.qty) || 1));   // refunded pieces leave the base
+  const linePin = (o, l) => origKeptOf(l) > 0.005 && o.net != null ? lineNet(o, l) / origKeptOf(l) : null;
+  const brandCheck = (brand, v) => { const min = BRAND_MIN[brand]; return {min: min == null ? null : min, v, below: min != null && v != null && v < min - 1e-9}; };
+  const bminCell = c => `<td class="n">${c.min == null || c.v == null ? "–" : `<span class="pct ${c.below ? "hi" : "plus"}">${pc(c.v)}</span><br><span class="sub">เกณฑ์ ${(c.min * 100).toFixed(0)}% · ${c.below ? "ต่ำกว่าเกณฑ์" : "ผ่าน"}</span>`}</td>`;
+  const bminText = c => c.min == null || c.v == null ? "" : c.below ? "ต่ำกว่าเกณฑ์" : "ผ่าน";
+  const B_BMIN = [["", "ทั้งหมด"], ["below","ต่ำกว่าเกณฑ์"], ["ok","ผ่านเกณฑ์"], ["none","ไม่มีเกณฑ์/ไม่มีข้อมูล"]];
+  const bminMatch = (c, v) => v === "none" ? (c.min == null || c.v == null) : (c.min != null && c.v != null && (v === "below") === c.below);
+  const linePct = (l, k) => k === "lp2" ? (l.orig > 0 ? l.fee / l.orig : null) : (l.sales > 0 ? l.fee / l.sales : null);
+  const linesOf = o => {
+    if (!hSort || (hSort.key !== "lp" && hSort.key !== "lp2")) return o.lines;
+    const k = hSort.key, d = hSort.dir;
+    return o.lines.slice().sort((a,b) => { const va = linePct(a, k), vb = linePct(b, k); return va == null ? (vb == null ? 0 : 1) : vb == null ? -1 : d * (va - vb); });
+  };
+  let hSort = null;   // {key, dir} set by clicking a column header; overrides the "เรียงตาม" select
+  let whyList = [], pstatList = [], pstList = [], pwhyList = [];
+  let payList = [], dateList = [], markList = [], fBal = "", fRef = "";   // column-header filters: payment methods on offer, reconciliation result, refund yes/no
+  // a small dropdown that sits in a column header and filters by that column
+  const hsel = (key, opts, cur) => `<select class="hsel" data-f="${key}" aria-label="กรองคอลัมน์นี้">${opts.map(([v, l]) => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+  const HF = {};   // value picked in each column-header dropdown, by column key
+  const ALL = ["", "ทั้งหมด"];
+  const B_PCT = [ALL, ["-20","ต่ำกว่า 20%"], ["20-25","20–25%"], ["25-30","25–30%"], ["30-35","30–35%"], ["35-40","35–40%"], ["40-","40% ขึ้นไป"]];
+  const B_IN = [ALL, ["-40","ต่ำกว่า 40%"], ["-50","ต่ำกว่า 50%"], ["-55","ต่ำกว่า 55%"], ["-58","ต่ำกว่า 58%"], ["-59","ต่ำกว่า 59%"], ["-60","ต่ำกว่า 60%"],
+    ["40-50","40–50%"], ["50-60","50–60%"], ["60-70","60–70%"], ["70-","70% ขึ้นไป"]];
+  const B_AMT = [ALL, ["-100","ต่ำกว่า ฿100"], ["100-300","฿100–300"], ["300-500","฿300–500"], ["500-1000","฿500–1,000"], ["1000-","฿1,000 ขึ้นไป"]];
+  const B_QTY = [ALL, ["1-2","1 ชิ้น"], ["2-3","2 ชิ้น"], ["3-","3 ชิ้นขึ้นไป"]];
+  const B_CNT = [ALL, ["1-2","1"], ["2-5","2–4"], ["5-10","5–9"], ["10-","10 ขึ้นไป"]];
+  const B_YN = (yes, no) => [ALL, ["y", yes], ["n", no]];
+  // "20-25" keeps 20 ≤ x < 25; an empty side is open-ended
+  const inRange = (v, spec, scale) => { if (v == null || !isFinite(v)) return false; const [lo, hi] = spec.split("-"), x = v * scale; return (lo === "" || x >= +lo) && (hi === "" || x < +hi); };
+  const hf = (key, opts) => hsel(key, opts, HF[key] || "");
+  // platform, brand and payment method already have a dropdown in the toolbar: the header one is the same control
+  const MIRROR = {plat:"fPlat", brand:"fBrand", pay:"fPay"};
+  const mir = key => hsel(key, [...$(MIRROR[key]).options].map(o => [o.value, o.textContent]), $(MIRROR[key]).value);
+  const ORD_F = {
+    bal: (o,v) => !(balMap.size || lzStmtAmt.size) || balOf(o).st === v,
+    balAmt: (o,v) => !(balMap.size || lzStmtAmt.size) || (v === "y") === (balOf(o).amt != null && Math.abs(balOf(o).amt) > 0.005),
+    refund: (o,v) => (v === "y") === (o.refund > 0),
+    shipLoss: (o,v) => (v === "y") === (o.shipLoss > 0.005),
+    dsc: (o,v) => inRange(dsc(o), v, 100), pct2: (o,v) => inRange(o.pct2, v, 100), pct: (o,v) => inRange(o.pct, v, 100), pnet: (o,v) => inRange(netFee(o), v, 100), pin: (o,v) => inRange(pin(o), v, 100),
+    skuN: (o,v) => (v === "1") === (o.lines.length === 1),
+    date: (o,v) => (o.date || "").startsWith(v),
+    mark: (o,v) => v === "__none" ? !o.mark : tagsOf(o).includes(v),
+    ncs: (o,v) => (v === "y") === !!o.ncs,
+    npick: (o,v) => (v === "y") === !!o.npick,
+    sup: (o,v) => (v === "y") === (o.support > 0.005 || o.supInfo > 0.005),
+    track: (o,v) => (v === "y") === !!trackOf(o),
+    cancel: (o,v) => (v === "y") === !!cancelOf(o),
+    cwhy: (o,v) => cancelWhyOf(o) === v,
+    pstat: (o,v) => o.pstat === v,
+    rst: (o,v) => { const x = pstOf(o); return v === "__none" ? !x : !!x && x.st.has(v); },
+    rwhy: (o,v) => { const x = pstOf(o); return v === "__none" ? !x || !x.why.size : !!x && x.why.has(v); },
+    shipDate: (o,v) => (v === "y") === !!o.shipDate,
+    paid: (o,v) => (v === "y") === !!transferOf(o).date,
+    rqT: (o,v) => (v === "y") === !!(retInfo.get(o.id) || {}).reqT,
+    bkT: (o,v) => (v === "y") === !!(retInfo.get(o.id) || {}).backT,
+    inc: (o,v) => incOf(o) != null && (v === "y") === incOf(o),
+    balF: (o,v) => balFound(o) != null && (v === "y") === balFound(o)
+  };
+  const LINE_F = {
+    lqty: (o,l,v) => inRange(l.qty, v, 1), bmin: (o,l,v) => bminMatch(brandCheck(br(l), pin(o)), v), lorig: (o,l,v) => inRange(l.orig, v, 1), lsales: (o,l,v) => inRange(l.sales, v, 1),
+    lfee: (o,l,v) => inRange(l.fee, v, 1), lnet: (o,l,v) => inRange(lineNet(o, l), v, 1),
+    lp2: (o,l,v) => inRange(l.orig > 0 ? l.fee / l.orig : null, v, 100), lp: (o,l,v) => inRange(l.sales > 0 ? l.fee / l.sales : null, v, 100)
+  };
+  const GRP_F = {
+    gn: (g,v) => inRange(g.n, v, 1), gbmin: (g,v) => bminMatch(brandCheck(g.brand, g.pinWB > 0.005 ? g.pinW / g.pinWB : null), v), gqty: (g,v) => inRange(g.qty, v, 1), gorig: (g,v) => inRange(g.orig, v, 1), gsales: (g,v) => inRange(g.sales, v, 1),
+    gfee: (g,v) => inRange(g.fee, v, 1), gnet: (g,v) => inRange(g.net, v, 1), gp2: (g,v) => inRange(g.pct2, v, 100), gp: (g,v) => inRange(g.pct, v, 100)
+  };
+  const passOrd = o => Object.keys(ORD_F).every(k => !HF[k] || ORD_F[k](o, HF[k]));
+  const passLine = (o, l) => Object.keys(LINE_F).every(k => !HF[k] || LINE_F[k](o, l, HF[k]));
+  const passLines = o => !Object.keys(LINE_F).some(k => HF[k]) || o.lines.some(l => passLine(o, l));   // an order stays when any of its SKU lines matches
+  const passGroup = g => Object.keys(GRP_F).every(k => !HF[k] || GRP_F[k](g, HF[k]));
+  const sh = (label, key, cls, extra) => {
+    const on = hSort && hSort.key === key;
+    return `<th class="${cls}" aria-sort="${on ? (hSort.dir > 0 ? "ascending" : "descending") : "none"}"><button type="button" class="sortbtn" data-k="${key}" title="กดเพื่อเรียง">${label} <span aria-hidden="true">${on ? (hSort.dir > 0 ? "▲" : "▼") : "↕"}</span></button>${extra || ""}</th>`;
+  };
+  // when both exist, show whether the order-file formula reproduces the platform's real payout
+  const netCmp = o => {
+    if (!joined || o.bigNet == null || o.bigFee == null || !o.act || o.act.payout == null) return "";
+    const off = Math.abs(o.bigNet - o.act.payout) > 1;
+    return `<br><span class="sub${off ? " off" : ""}">สูตร ${money(r2(o.bigNet))} · โอนจริง ${money(r2(o.act.payout))}</span>`;
+  };
+  const cmpLine = o => {
+    if (!joined) return "";
+    if (!o.act) return `<br><span class="sub">ไม่พบในรายงานแพลตฟอร์ม</span>`;
+    if (o.bigFee == null) return "";
+    const off = Math.abs(o.bigFee - o.act.fee) > 1;
+    return `<br><span class="sub${off ? " off" : ""}">แพลตฟอร์ม ${baht(r2(o.act.fee))} · BigSeller ${baht(r2(o.bigFee))}</span>`;
+  };
+  // Seller Balance columns on each order row: money that came in, and whether it equals the income report's payout
+  const lzAct = o => o.act || platMap.get(o.id);
+  // one Lazada statement: income-report total, deposit, gap, and orders that ASC puts in it but the income file lacks
+  const lzStmtInfo = code => {
+    const inc = lzStmtInc.has(code) ? r2(lzStmtInc.get(code)) : null, dep = lzStmtAmt.has(code) ? r2(lzStmtAmt.get(code)) : null;
+    const have = lzStmtOrd.get(code) || new Set();
+    const missing = [...ascMap].filter(([id,x]) => x.stmt === code && !have.has(id)).map(([id]) => id);
+    return {inc, dep, gap: dep == null ? null : r2(dep - (inc || 0)), missing};
+  };
+  const balOf = o => {
+    if (o.platform === "Lazada") {
+      if (!lzStmtAmt.size) return {amt:null, st:""};
+      const a = lzAct(o), codes = a && a.stmts ? [...a.stmts] : [];
+      if (!codes.length) {
+        // not in the income file: ASC names its statement, and when it is the only missing order the statement gap is its money
+        const x = ascMap.get(o.id);
+        if (!x || !lzStmtAmt.has(x.stmt)) return {amt:null, st:""};
+        const s = lzStmtInfo(x.stmt);
+        if (s.missing.length === 1) return {amt: s.gap, st:"ตรง", note:`คิดจากส่วนต่างรอบบิล ${x.stmt}`, full:`รอบบิล ${x.stmt} เงินเข้า ${money(s.dep)} − ยอดคำสั่งซื้ออื่นในรายรับ ${money(s.inc || 0)} = ${money(s.gap)} (ไม่มีคำสั่งซื้อนี้ในไฟล์รายรับ)`};
+        return {amt:null, st:"", note:`อยู่ในรอบบิล ${x.stmt}`, full:`รอบบิล ${x.stmt} มีคำสั่งซื้อที่ไม่อยู่ในไฟล์รายรับ ${s.missing.length} รายการ แยกยอดของแต่ละรายการไม่ได้`};
+      }
+      if (!codes.every(c => lzStmtAmt.has(c))) return {amt:null, st:""};
+      let ok = true; const notes = [], full = [];
+      codes.forEach(c => {
+        const s = lzStmtInfo(c);
+        if (s.inc != null && Math.abs(s.gap) < 0.01) return;
+        if (s.missing.length) { notes.push(`รอบบิล ${money(s.dep)} รวมคำสั่งซื้ออื่น ${money(s.gap)}`); full.push(`รอบบิล ${c} เงินเข้า ${money(s.dep)} = คำสั่งซื้อในไฟล์รายรับ ${money(s.inc)} + คำสั่งซื้อที่ไม่มีในไฟล์รายรับ ${money(s.gap)} (${s.missing.join(", ")})`); }
+        else ok = false;
+      });
+      return {amt: r2(a.payout), st: ok ? "ตรง" : "ไม่ตรง", note: notes.join(" · "), full: full.join(" · ")};
+    }
+    if (o.platform !== "Shopee") return {amt:null, st:""};
+    const b = balMap.get(o.id), exp = o.act && o.act.payout != null ? r2(o.act.payout) : null;
+    const amt = b ? r2(b.amt) : exp === 0 ? 0 : null;
+    if (exp == null) return {amt, st:""};
+    return {amt, st: amt != null && Math.abs(exp - amt) < 0.005 ? "ตรง" : "ไม่ตรง"};
+  };
+  // Excel copy: each fee as "amount (x.xx%)" of รวมค่าสินค้า
+  const bigCells = (o, span) => {
+    const b = o.big, td = (v, base) => `<td class="n grp" rowspan="${span}">${v == null ? "–" : `${money(r2(v))}${base > 0.005 && Math.abs(v) > 0.005 ? `<br><span class="sub">${pc(v / base)}</span>` : ""}`}</td>`;
+    if (!b || !b.has) return bigLabels.map(() => td(null)).join("") + td(null) + td(b && b.ship != null ? b.ship : null) + td(null);
+    return b.fees.map(x => td(x, o.sales)).join("") + td(b.fee, o.sales) + td(b.ship, o.sales) + td(b.net, o.orig);
+  };
+  const feePctTxt = (x, base) => { const v = r2(x); return Math.abs(v) < 0.005 || !(base > 0.005) ? v : `${v} (${(x / base * 100).toFixed(2)}%)`; };
+  const balCells = (o, span) => {
+    const b = balOf(o);
+    return `<td class="n grp" rowspan="${span}"${b.full ? ` title="${esc(b.full)}"` : ""}>${b.amt == null ? (b.st ? "ไม่มีเงินเข้า" : "–") : money(b.amt)}${b.note ? `<br><span class="sub">${esc(b.note)}</span>` : ""}</td><td class="grp" rowspan="${span}">${b.st ? `<span class="tag${b.st === "ไม่ตรง" ? " bad" : ""}">${b.st}</span>` : "–"}</td>`;
+  };
+  const LIMIT = 400;
+  function render(){
+    const feeTitle = l => feeLabels.map((h,k) => `${h}: ${r2(l.fees[k])}`).join("\n");
+    let total, shown; selA = selB = null; setTimeout(updateSelUI, 0);
+    $("clearHF").hidden = !Object.values(HF).some(Boolean);
+    const showInc = joined && platMap.size > 0, showBF = joined && (balMap.size > 0 || lzStmtAmt.size > 0);
+    const showSup = orders.some(o => o.support > 0.005 || o.supInfo > 0.005);
+    const mapped = id => rows.length > 0 && parseInt($(id).value, 10) >= 0;
+    const showMark = mapped("mMark"), showCS = mapped("mNoteCS"), showPick = mapped("mNotePick");
+    const showTrack = mapped("mTrack") || retInfo.size > 0;
+    const showCancel = mapped("mCancel") || cancelMap.size > 0;
+    const showRet = retInfo.size > 0;
+    const showShipDate = mapped("mShipDate");
+    const showPStat = mapped("mPStat");
+    const showBig = rows.length > 0 && bigLabels.length > 0;
+    const showPst = orders.some(o => pstOf(o));
+    const showPaid = orders.some(o => transferOf(o).date);
+    const showBal = balMap.size > 0 || lzStmtAmt.size > 0, showRef = orders.some(o => o.refund > 0);
+    if ($("view").value === "sku") {
+      const list = skuList(); total = list.length; const part = list.slice(0, LIMIT * 2); shown = part.length;
+      $("resHead").innerHTML = `<tr>${sh("SKU","sku","")}<th>ยี่ห้อ${mir("brand")}</th><th class="n" title="% เงินเข้าเทียบราคาเดิมของคำสั่งซื้อที่มี SKU นี้ เฉลี่ยถ่วงตามราคาเดิมของ SKU เทียบกับเกณฑ์ขั้นต่ำของยี่ห้อ">% เงินเข้าเทียบราคาเดิม เทียบเกณฑ์ยี่ห้อ${hf("gbmin", B_BMIN)}</th><th>ชื่อสินค้า</th><th>แพลตฟอร์ม${mir("plat")}</th><th class="n">คำสั่งซื้อ${hf("gn", B_CNT)}</th><th class="n">จำนวน${hf("gqty", B_CNT)}</th><th class="n">รวมค่าสินค้าราคาเดิม${hf("gorig", B_AMT)}</th><th class="n">รวมค่าสินค้า${hf("gsales", B_AMT)}</th><th class="n">ค่าธรรมเนียม${hf("gfee", B_AMT)}</th><th class="n" title="เงินเข้าของคำสั่งซื้อ (ยอดโอนจริงเมื่อมีรายงานรายรับ) แบ่งให้แต่ละ SKU ตามสัดส่วนรวมค่าสินค้า">ยอดเงินเข้าหลังหักทั้งหมด${hf("gnet", B_AMT)}</th>${sh("% เทียบราคาเดิม","pct2","n", hf("gp2", B_PCT))}${sh("% เทียบรวมค่าสินค้า","pct","n", hf("gp", B_PCT))}</tr>`;
+      $("resBody").innerHTML = part.map(g => `<tr><td class="sku">${esc(g.sku)}</td><td class="brand">${esc(g.brand)}</td>${bminCell(brandCheck(g.brand, g.pinWB > 0.005 ? g.pinW / g.pinWB : null))}<td class="name">${esc(g.name)}</td><td><span class="tag">${esc(g.platform)}</span></td><td class="n">${nf(g.n)}</td><td class="n">${nf(g.qty)}</td><td class="n">${baht(r2(g.orig))}</td><td class="n">${baht(r2(g.sales))}</td><td class="n" title="${esc(feeTitle(g))}">${baht(r2(g.fee))}</td><td class="n net">${money(r2(g.net))}</td><td class="n">${pctCell(g.pct2, true)}</td><td class="n">${pctCell(g.pct, true)}</td></tr>`).join("");
+    } else {
+      const list = filteredOrders().sort(sorter()); total = list.length; const part = list.slice(0, LIMIT); shown = part.length;
+      $("resHead").innerHTML = `<tr><th class="lock">หมายเลขคำสั่งซื้อ${mir("plat")}</th>${sh("วันที่สั่งซื้อ","date","", hf("date", [ALL].concat(dateList.map(x => [x, x]))))}${showPStat ? sh("สถานะแพลตฟอร์ม","pstat","", hf("pstat", [ALL].concat(pstatList))) : ""}${showPst ? sh("สถานะ (รายงานแพลตฟอร์ม)","rst","", hf("rst", [ALL, ["__none","ไม่มีในรายงาน"]].concat(pstList))) + sh("สาเหตุ (รายงานแพลตฟอร์ม)","rwhy","", hf("rwhy", [ALL, ["__none","ไม่มีสาเหตุ"]].concat(pwhyList))) : ""}${showShipDate ? sh("วันที่ส่งสินค้า","shipDate","", hf("shipDate", B_YN("ส่งแล้ว","ยังไม่มีวันที่ส่ง"))) : ""}${showPaid ? sh("วันที่โอนเงิน","paid","", hf("paid", B_YN("โอนแล้ว","ยังไม่มีข้อมูล"))) : ""}${showCancel ? sh("วันที่ยกเลิก","cancel","", hf("cancel", B_YN("ยกเลิก","ไม่ได้ยกเลิก"))) + sh("สาเหตุยกเลิก","cwhy","", hf("cwhy", [ALL].concat(whyList))) : ""}${showMark ? sh("เครื่องหมายคำสั่งซื้อ","mark","", hf("mark", [ALL].concat(markList, [["__none","(ว่าง)"]]))) : ""}${showCS ? sh("หมายเหตุ CS","ncs","", hf("ncs", B_YN("มีหมายเหตุ","ไม่มี"))) : ""}${showPick ? sh("หมายเหตุ Pick Orders","npick","", hf("npick", B_YN("มีหมายเหตุ","ไม่มี"))) : ""}${sh("วิธีชำระเงิน","pay","", mir("pay"))}${showInc ? sh("เจอใน Income","inc","", hf("inc", B_YN("เจอ","ไม่เจอ"))) : ""}${showBF ? sh("เจอใน Balance","balF","", hf("balF", B_YN("เจอ","ไม่เจอ"))) : ""}${showBal ? `<th class="n">เงินเข้า Seller Balance${hf("balAmt", B_YN("มีเงินเข้า","ไม่มีเงินเข้า"))}</th>${sh("ชนยอด","bal","", hf("bal", [ALL,["ตรง","ตรง"],["ไม่ตรง","ไม่ตรง"]]))}` : ""}${showTrack ? sh("เลขแทรคกิ้ง","track","", hf("track", B_YN("มีเลขแทรคกิ้ง","ไม่มี"))) : ""}${showRef ? sh("คืนเงิน (SKU × จำนวน)","refund","", hf("refund", B_YN("มีคืนเงิน","ไม่มีคืนเงิน"))) : ""}${showRet ? sh("เวลายื่นคำขอคืน","rqT","", hf("rqT", B_YN("มีคำขอคืน","ไม่มี"))) + sh("เวลาที่คืนเงิน","rfT","") + sh("เวลาสินค้าคืนถึงร้าน","bkT","", hf("bkT", B_YN("ถึงร้านแล้ว","ยังไม่มี"))) : ""}${sh("ค่าส่งที่ร้านเสีย","shipLoss","n", hf("shipLoss", B_YN("ร้านเสียค่าส่ง","ไม่เสีย")))}${showBig ? bigLabels.map(h => `<th class="n">${esc(h)}<br><span class="sub">(รายงาน BigSeller)</span></th>`).join("") + `<th class="n">ค่าธรรมเนียมรวม<br><span class="sub">(รายงาน BigSeller)</span></th><th class="n">ค่าส่งที่ร้านเสีย<br><span class="sub">(รายงาน BigSeller)</span></th><th class="n">เงินเข้าโดยประมาณ<br><span class="sub">(รายงาน BigSeller)</span></th>` : ""}${showSup ? sh("ส่วนลดแพลตฟอร์มสนับสนุน (+)","support","n", hf("sup", B_YN("ได้รับ","ไม่ได้รับ"))) : ""}${sh("% ส่วนลดผู้ขายเทียบราคาเดิม","dsc","n", hf("dsc", B_PCT))}${sh("% ค่าธรรมเนียมเทียบราคาเดิม","pct2","n", hf("pct2", B_PCT))}${sh("% เทียบรวมค่าสินค้า","pct","n", hf("pct", B_PCT))}${sh("% ค่าธรรมเนียมสุทธิ (หลังหักเงินสนับสนุน)","pnet","n", hf("pnet", B_PCT))}${sh("% เงินเข้าเทียบราคาเดิม","pin","n", hf("pin", B_IN))}${sh("SKU","sku","", hf("skuN", [ALL,["1","คำสั่งซื้อ SKU เดียว"],["m","คำสั่งซื้อหลาย SKU"]]))}<th>ยี่ห้อ${mir("brand")}</th><th class="n" title="% เงินเข้าเทียบราคาเดิมของคำสั่งซื้อ เทียบกับเกณฑ์ขั้นต่ำของยี่ห้อของ SKU นี้">% เงินเข้าเทียบราคาเดิม เทียบเกณฑ์ยี่ห้อ${hf("bmin", B_BMIN)}</th><th>ชื่อสินค้า</th><th class="n">จำนวน${hf("lqty", B_QTY)}</th><th class="n">รวมค่าสินค้าราคาเดิม${hf("lorig", B_AMT)}</th><th class="n">รวมค่าสินค้า${hf("lsales", B_AMT)}</th><th class="n">ค่าธรรมเนียม${hf("lfee", B_AMT)}</th><th class="n" title="เงินเข้าของคำสั่งซื้อ (ยอดโอนจริงเมื่อมีรายงานรายรับ) แบ่งให้แต่ละ SKU ตามสัดส่วนรวมค่าสินค้า">ยอดเงินเข้าหลังหักทั้งหมด${hf("lnet", B_AMT)}</th>${sh("% SKU เทียบราคาเดิม","lp2","n", hf("lp2", B_PCT))}${sh("% SKU เทียบรวมค่าสินค้า","lp","n", hf("lp", B_PCT))}</tr>`;
+      $("resBody").innerHTML = part.map((o,oi) => linesOf(o).map((l,i) => {
+        const span = o.lines.length;
+        const head = i ? "" : `<td class="id grp" data-oi="${oi}" rowspan="${span}"><span class="oid" title="ลากลงเพื่อเลือกหลายคำสั่งซื้อ แล้วกด Ctrl+C">${esc(o.id)}</span><br><span class="tag">${esc(o.platform)}</span>${o.store ? `<br><span class="sub">${esc(o.store)}</span>` : ""}${cmpLine(o)}</td><td class="grp odate" rowspan="${span}">${esc(o.dateT || o.date || "–")}</td>${showPStat ? `<td class="grp note" rowspan="${span}">${o.pstat ? `<span class="tag${BAD_ST.test(o.pstat) ? " bad" : ""}">${esc(stTh(o.pstat))}</span>` : "–"}</td>` : ""}${showPst ? pstCells(o, span) : ""}${showShipDate ? `<td class="grp odate" rowspan="${span}">${esc(o.shipT || o.shipDate || "–")}</td>` : ""}${showPaid ? (tr => `<td class="grp odate" rowspan="${span}">${tr.date ? `${esc(tr.date)}<br><span class="sub">${esc(tr.src)}</span>` : "–"}</td>`)(transferOf(o)) : ""}${showCancel ? cancelCell(o, span) + whyCell(o, span) : ""}${showMark ? `<td class="grp note" rowspan="${span}">${o.mark ? tagsOf(o).map(m => `<span class="tag mark">${esc(m)}</span>`).join(" ") : "–"}</td>` : ""}${showCS ? `<td class="grp note" rowspan="${span}">${esc(o.ncs || "–")}</td>` : ""}${showPick ? `<td class="grp note" rowspan="${span}">${esc(o.npick || "–")}</td>` : ""}<td class="grp pay" rowspan="${span}">${esc(o.pay || "–")}${o.payRate ? `<br><span class="sub">ค่าธุรกรรม ${esc(o.payRate)}</span>` : ""}</td>${showInc ? foundCell(incOf(o), span) : ""}${showBF ? foundCell(balFound(o), span) : ""}${showBal ? balCells(o, span) : ""}${showTrack ? trackCell(o, span) : ""}${showRef ? refCell(o, span) : ""}${showRet ? retCells(o, span) : ""}${shipCell(o, span)}${showBig ? bigCells(o, span) : ""}${showSup ? supCell(o, span) : ""}
+          ${dscCell(o, span)}<td class="n grp" rowspan="${span}">${pctCell(o.pct2, true)}<br><span class="sub" title="${esc(feeLabels.map((h,k) => `${h}: ${r2(o.fees[k])}`).join("\n"))}">${baht(r2(o.fee))} / ${baht(r2(o.orig))}</span></td>
+          <td class="n grp" rowspan="${span}">${pctCell(o.pct, true)}<br><span class="sub">${baht(r2(o.fee))} / ${baht(r2(o.sales))}</span></td>
+          <td class="n grp" rowspan="${span}">${pctCell(netFee(o), true)}${netFee(o) == null ? "" : `<br><span class="sub" title="(ค่าธรรมเนียม − ส่วนลดแพลตฟอร์มสนับสนุน) ÷ รวมค่าสินค้า">${money(r2(o.fee - (o.support || 0)))} / ${baht(r2(o.sales))}</span>`}</td>
+          <td class="n grp" rowspan="${span}"><span class="pct">${o.refAll ? "คืนทั้งหมด" : pc(pin(o))}</span>${pin(o) == null ? "" : `<br><span class="sub" title="เงินเข้า ÷ รวมค่าสินค้าราคาเดิม${o.refund ? " (ไม่นับสินค้าที่คืน)" : ""}">${money(r2(netIn(o)))} / ${baht(r2(pinBase(o)))}${o.refund ? "<br>ไม่นับสินค้าที่คืน" : ""}</span>`}${netCmp(o)}</td>`;
+        return `<tr data-oi="${oi}" class="${i ? "" : "first"}">${head}<td class="sku">${esc(l.sku || "–")}</td><td class="brand">${esc(br(l))}</td>${bminCell(brandCheck(br(l), pin(o)))}<td class="name">${esc(l.name)}</td><td class="n">${nf(l.qty)}</td><td class="n">${baht(r2(l.orig))}${l.origSrc === "lz" ? `<br><span class="sub" title="ราคา (ราคาเดิม) จากไฟล์รายการสินค้า Lazada ณ วันที่ส่งออกไฟล์ ไม่ใช่ราคา ณ วันที่สั่งซื้อ">รายการสินค้า</span>` : ""}</td><td class="n">${baht(r2(l.sales))}</td><td class="n" title="${esc(feeTitle(l))}">${baht(r2(l.fee))}</td><td class="n net">${lineNet(o, l) == null ? "–" : money(r2(lineNet(o, l)))}</td><td class="n">${pctCell(l.orig > 0 ? l.fee / l.orig : null)}</td><td class="n">${pctCell(l.sales > 0 ? l.fee / l.sales : null)}</td></tr>`;
+      }).join("")).join("");
+    }
+    if (!total) $("resBody").innerHTML = `<tr><td colspan="48" class="sub">ไม่มีรายการที่ตรงกับตัวกรอง</td></tr>`;
+    const terms = $("view").value === "order" ? idTerms() : null;
+    let termNote = "";
+    if (terms) {
+      const known = new Set(); orders.forEach(o => { known.add(o.id.toLowerCase()); const tr = trackOf(o); if (tr) known.add(tr.toLowerCase()); });
+      const missing = [...new Set(terms)].filter(x => !known.has(x));
+      termNote = `ค้นหา ${nf(new Set(terms).size)} เลข พบ ${nf(new Set(terms).size - missing.length)} ไม่พบ ${nf(missing.length)}` + (missing.length ? `: ${missing.slice(0, 10).map(x => x.toUpperCase()).join(", ")}${missing.length > 10 ? " …" : ""}` : "") + " · ";
+    }
+    $("resNote").textContent = termNote + (isSample ? "กำลังแสดงข้อมูลตัวอย่าง ไม่ใช่ข้อมูลร้านของคุณ · " : "") +
+      (total > shown ? `แสดง ${nf(shown)} จาก ${nf(total)} รายการ ปุ่มคัดลอกจะคัดลอกทั้งหมด` : `${nf(total)} รายการ`) + " · ชี้ที่ค่าธรรมเนียมเพื่อดูแยกตามประเภท · ลากที่เลขคำสั่งซื้อ (หรือกด Shift ค้างแล้วคลิก) เพื่อเลือกหลายรายการ แล้วกด Ctrl+C";
+  }
+
+  function tsv(){
+    const feeNames = feeLabels;
+    const line = a => a.map(v => String(v ?? "").replace(/[\t\r\n]+/g, " ")).join("\t");
+    const p = v => v == null ? "" : r2(v * 100);
+    if ($("view").value === "sku")
+      return [line(["SKU","ยี่ห้อ","ชื่อสินค้า","แพลตฟอร์ม","คำสั่งซื้อ","จำนวน","รวมค่าสินค้าราคาเดิม","รวมค่าสินค้า",...feeNames,"ค่าธรรมเนียมรวม","ยอดเงินเข้าหลังหักทั้งหมด","% เทียบราคาเดิม","% เทียบรวมค่าสินค้า","% เงินเข้าเทียบราคาเดิม","เกณฑ์ขั้นต่ำยี่ห้อ","ผลเทียบเกณฑ์ยี่ห้อ"])]
+        .concat(skuList().map(g => line([g.sku, g.brand, g.name, g.platform, g.n, g.qty, r2(g.orig), r2(g.sales), ...g.fees.map(x => feePctTxt(x, g.sales)), r2(g.fee), r2(g.net), p(g.pct2), p(g.pct), ...(c => [p(c.v), c.min == null ? "" : r2(c.min * 100), bminText(c)])(brandCheck(g.brand, g.pinWB > 0.005 ? g.pinW / g.pinWB : null))]))).join("\n");
+    const out = [line(["หมายเลขคำสั่งซื้อ","วันที่สั่งซื้อ","สถานะแพลตฟอร์ม","สถานะ (รายงานแพลตฟอร์ม)","สาเหตุ (รายงานแพลตฟอร์ม)","วันที่ส่งสินค้า","วันที่โอนเงิน","วันที่ยกเลิก","สาเหตุยกเลิก","เครื่องหมายคำสั่งซื้อ","หมายเหตุ CS","หมายเหตุ Pick Orders","แพลตฟอร์ม","ร้านค้า","วิธีการชำระเงิน","อัตราค่าธุรกรรม","SKU","ยี่ห้อ","ชื่อสินค้า","จำนวน","รวมค่าสินค้าราคาเดิม","รวมค่าสินค้า",...feeNames,"ค่าธรรมเนียมรวม","ยอดเงินเข้าหลังหักทั้งหมด","% SKU เทียบราคาเดิม","% SKU เทียบรวมค่าสินค้า","% ส่วนลดผู้ขายของ SKU เทียบราคาเดิม","รวมค่าสินค้าราคาเดิม ทั้งคำสั่งซื้อ","รวมค่าสินค้าทั้งคำสั่งซื้อ","ค่าธรรมเนียมทั้งคำสั่งซื้อ","% ส่วนลดผู้ขายเทียบราคาเดิม","% คำสั่งซื้อเทียบราคาเดิม","% คำสั่งซื้อเทียบรวมค่าสินค้า","% ค่าธรรมเนียมสุทธิ (หลังหักเงินสนับสนุน)","เงินเข้า","% เงินเข้าเทียบราคาเดิม","เงินเข้าโดยประมาณ (รายงาน BigSeller)","ยอดโอนจริงจากแพลตฟอร์ม",...bigLabels.map(h => `${h} (รายงาน BigSeller ทั้งคำสั่งซื้อ)`),"ค่าส่งที่ร้านเสีย (รายงาน BigSeller)","ค่าธรรมเนียมรวม (รายงาน BigSeller)","ค่าธรรมเนียมจริงจากแพลตฟอร์ม","เงินเข้า Seller Balance","ชนยอด","เงินคืน","รายการที่คืน","จำนวนที่คืนของ SKU นี้","ที่มาของ SKU ที่คืน","ค่าส่งที่ร้านค้าเสีย (ทั้งคำสั่งซื้อ)","ส่วนลดแพลตฟอร์มสนับสนุน (+)","ส่วนลดแพลตฟอร์มที่รวมในรวมค่าสินค้าแล้ว (TikTok)","เจอใน Income","เจอใน Balance","เลขแทรคกิ้ง","ข้อเสนอการคืนเงิน/คืนสินค้า","เลขพัสดุส่งคืน","สถานะการส่งสินค้าคืน","% เงินเข้าเทียบราคาเดิม (คำสั่งซื้อ)","เกณฑ์ขั้นต่ำยี่ห้อ","ผลเทียบเกณฑ์ยี่ห้อ","เวลายื่นคำขอคืน","เวลาที่คืนเงิน","เวลาสินค้าคืนถึงร้าน"])];
+    filteredOrders().sort(sorter()).forEach(o => o.lines.forEach(l =>
+      out.push(line([o.id, o.dateT || o.date || "", stTh(o.pstat || ""), pstText(o), (x => x ? [[...x.why].join(", "), x.by.size ? `โดย: ${[...x.by].map(stTh).join(", ")}` : "", [...x.detail].join(" · ")].filter(Boolean).join(" | ") : "")(pstOf(o)), o.shipT || o.shipDate || "", transferOf(o).date || "", cancelTOf(o), cancelWhyOf(o) + (o.cancelBy ? ` (ยกเลิกโดย: ${o.cancelBy})` : ""), o.mark || "", o.ncs || "", o.npick || "", o.platform, o.store, o.pay, o.payRate || "", l.sku, br(l), l.name, l.qty, r2(l.orig), r2(l.sales), ...l.fees.map(x => feePctTxt(x, l.sales)), r2(l.fee), (v => v == null ? "" : r2(v))(lineNet(o, l)), p(l.orig > 0 ? l.fee / l.orig : null), p(l.sales > 0 ? l.fee / l.sales : null), p(l.orig > 0 && l.sales > 0 ? (l.orig - l.sales) / l.orig : null), r2(o.orig), r2(o.sales), r2(o.fee), p(dsc(o)), p(o.pct2), p(o.pct), p(netFee(o)), o.net == null ? "" : r2(o.net), p(pin(o)), o.bigNet == null ? "" : r2(o.bigNet), o.act && o.act.payout != null ? r2(o.act.payout) : "", ...bigLabels.map((_,k) => o.big && o.big.has ? feePctTxt(o.big.fees[k], o.sales) : ""), o.big && o.big.ship != null ? r2(o.big.ship) : "", o.big && o.big.has ? r2(o.big.fee) : "", o.act ? r2(o.act.fee) : "", balOf(o).amt ?? "", (b => b.st + (b.full ? ` (${b.full})` : ""))(balOf(o)), o.refund ? r2(o.refund) : "", refText(o), l.rq || "", !o.refund || o.refNote ? "" : o.refSrc === "report" ? "รายงานคืนสินค้า" : "คำนวณจากยอดเงินคืน", o.shipLoss == null ? "" : r2(o.shipLoss), r2(o.support || 0), r2(o.supInfo || 0), incOf(o) == null ? "" : incOf(o) ? "เจอ" : "ไม่เจอ", balFound(o) == null ? "" : balFound(o) ? "เจอ" : "ไม่เจอ", trackOf(o), (retInfo.get(o.id) || {}).offer || "", (retInfo.get(o.id) || {}).returnTrack || "", (retInfo.get(o.id) || {}).returnStatus || "", ...(c => [p(c.v), c.min == null ? "" : r2(c.min * 100), bminText(c)])(brandCheck(br(l), pin(o))), ...(ri => [ri.reqT || "", ri.refT || "", ri.backT || ""])(retInfo.get(o.id) || {})]))));
+    // column order for Excel: payment right after the ship date, the brand-threshold result next to it, SKU after the product name
+    const grid = out.map(s => s.split("\t")), H = grid[0], ord = H.map((_, i) => i);
+    const moveAfter = (name, after) => {
+      const from = ord.findIndex(i => H[i] === name), to = ord.findIndex(i => H[i] === after);
+      if (from < 0 || to < 0) return;
+      const [x] = ord.splice(from, 1);
+      ord.splice(ord.findIndex(i => H[i] === after) + 1, 0, x);
+    };
+    moveAfter("วันที่ยกเลิก", "วันที่สั่งซื้อ");
+    moveAfter("สาเหตุยกเลิก", "วันที่ยกเลิก");
+    moveAfter("วิธีการชำระเงิน", "วันที่โอนเงิน");
+    moveAfter("เกณฑ์ขั้นต่ำยี่ห้อ", "วิธีการชำระเงิน");
+    moveAfter("ผลเทียบเกณฑ์ยี่ห้อ", "เกณฑ์ขั้นต่ำยี่ห้อ");
+    moveAfter("อัตราค่าธุรกรรม", "ผลเทียบเกณฑ์ยี่ห้อ");
+    moveAfter("SKU", "ชื่อสินค้า");
+    return grid.map(r => ord.map(i => r[i] ?? "").join("\t")).join("\n");
+  }
+
+  // Shopee hands some reports over as a .zip of workbooks: open every workbook inside and treat them as one
+  function readBook(u8, name){
+    if (!/\.zip$/i.test(name)) return XLSX.read(u8, {type:"array"});
+    const wb = {SheetNames:[], Sheets:{}};
+    XLSX.CFB.read(u8, {type:"array"}).FileIndex.forEach(f => {
+      if (!/\.(xlsx|xls|csv)$/i.test(f.name) || !f.content || !f.content.length) return;
+      const inner = XLSX.read(f.content, {type:"array"});
+      inner.SheetNames.forEach(s => { const key = `${f.name} / ${s}`; wb.SheetNames.push(key); wb.Sheets[key] = inner.Sheets[s]; });
+    });
+    return wb;
+  }
+
+  // some exports (TikTok) declare a table size smaller than the data, so size the sheet from its actual cells
+  function toAoa(ws){
+    let R = 0, C = 0;
+    Object.keys(ws).forEach(k => { if (k[0] === "!") return; const c = XLSX.utils.decode_cell(k); if (c.r > R) R = c.r; if (c.c > C) C = c.c; });
+    ws["!ref"] = XLSX.utils.encode_range({s:{r:0, c:0}, e:{r:R, c:C}});
+    return XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:""});
+  }
+
+  const BAL_LABEL = {ok:"ตรงกัน", diff:"ยอดไม่ตรง", miss:"มีในรายรับ แต่ไม่มีเงินเข้า", zero:"ยอดโอน ฿0 จึงไม่มีเงินเข้า", extra:"มีเงินเข้า แต่ไม่มีในรายรับ"};
+  const money = v => v == null ? "–" : (v < 0 ? "−" : "") + baht(Math.abs(v));
+  function balList(){
+    const f = $("bFilter").value;
+    const pick = f === "all" ? balRecs : f === "check" ? balRecs.filter(x => x.st === "diff" || x.st === "miss" || x.st === "extra") : balRecs.filter(x => x.st === f);
+    return pick.slice().sort((a,b) => Math.abs(b.gap) - Math.abs(a.gap));
+  }
+  function renderBal(){
+    $("balBox").hidden = !balMap.size;
+    if (selBody && selBody !== $("resBody")) { selA = selB = null; setTimeout(updateSelUI, 0); }   // rows are rebuilt below
+    if (!balMap.size) return;
+    const inc = [...platMap.values()].filter(a => a.platform === "Shopee" && a.payout != null);
+    const seen = new Set(); balRecs = [];
+    inc.forEach(a => {
+      seen.add(a.id);
+      const b = balMap.get(a.id), p = r2(a.payout);
+      if (!b) balRecs.push({id:a.id, st: p === 0 ? "zero" : "miss", inc:p, bal:null, gap:p, date:"", odate:a.date || ""});
+      else { const v = r2(b.amt); balRecs.push({id:a.id, st: Math.abs(p - v) < 0.005 ? "ok" : "diff", inc:p, bal:v, gap:r2(v - p), date:b.date, odate:a.date || ""}); }
+    });
+    balMap.forEach((b,id) => { if (!seen.has(id)) balRecs.push({id, st:"extra", inc:null, bal:r2(b.amt), gap:r2(b.amt), date:b.date}); });
+    const of = st => balRecs.filter(x => st.includes(x.st));
+    const sumOf = (list, k) => r2(list.reduce((t,x) => t + (x[k] || 0), 0));
+    const ok = of(["ok"]), diff = of(["diff"]), miss = of(["miss"]), zero = of(["zero"]), extra = of(["extra"]);
+    $("bOk").textContent = nf(ok.length); $("bOkN").textContent = `รวม ${money(sumOf(ok, "inc"))}`;
+    $("bDiff").textContent = nf(diff.length); $("bDiffN").textContent = diff.length ? `ส่วนต่างรวม ${money(sumOf(diff, "gap"))}` : "";
+    $("bMiss").textContent = nf(miss.length); $("bMissN").textContent = (miss.length ? `รวม ${money(sumOf(miss, "inc"))} · ` : "") + `ไม่นับ ${nf(zero.length)} คำสั่งซื้อที่ยอดโอนเป็น ฿0`;
+    $("bExtra").textContent = nf(extra.length); $("bExtraN").textContent = extra.length ? `รวม ${money(sumOf(extra, "bal"))}` : "";
+    const incSum = sumOf(inc.map(a => ({v:a.payout})), "v"), balSum = r2([...balMap.values()].reduce((t,b) => t + b.amt, 0)), gap = r2(balSum - incSum);
+    const note = $("balNote");
+    note.className = "notice" + (!inc.length || Math.abs(gap) >= 0.005 ? " warn" : "");
+    note.textContent = !inc.length ? "ยังไม่มีรายงานรายรับของ Shopee อัปโหลดรายงานรายรับช่วงวันที่เดียวกันเพื่อกระทบยอด"
+      : `รายงานรายรับ ${nf(inc.length)} คำสั่งซื้อ รวม ${money(incSum)} · Seller Balance เงินเข้าออกจากคำสั่งซื้อ ${nf(balMap.size)} คำสั่งซื้อ สุทธิ ${money(balSum)} · ` + (Math.abs(gap) < 0.005 ? "ยอดรวมตรงกัน" : `ต่างกัน ${money(gap)}`);
+    const list = balList(), shown = list.slice(0, 500);
+    $("balBody").innerHTML = shown.map((x,i) => `<tr data-oi="${i}"><td class="id" data-oi="${i}"><span class="oid" title="ลากลงเพื่อเลือกหลายคำสั่งซื้อ แล้วกด Ctrl+C">${esc(x.id)}</span></td><td class="odate">${esc(x.odate || "–")}</td><td><span class="tag${x.st === "ok" || x.st === "zero" ? "" : " bad"}">${BAL_LABEL[x.st]}</span></td><td class="n">${money(x.inc)}</td><td class="n">${money(x.bal)}</td><td class="n${x.st === "ok" || x.st === "zero" ? "" : " pct hi"}">${x.st === "ok" || x.st === "zero" ? "–" : money(x.gap)}</td><td class="sub">${esc(x.date)}</td></tr>`).join("")
+      || `<tr><td colspan="7" class="sub">${$("bFilter").value === "check" && inc.length ? "ไม่มีรายการที่ต้องตรวจ ทุกคำสั่งซื้อที่มียอดโอนมีเงินเข้าตรงกัน" : "ไม่มีรายการในกลุ่มนี้"}</td></tr>`;
+    $("balHint").textContent = list.length > shown.length ? `แสดง ${nf(shown.length)} จาก ${nf(list.length)} รายการ ปุ่มคัดลอกจะคัดลอกทั้งหมด` : `${nf(list.length)} รายการ`;
+    $("balOtherBody").innerHTML = balOther.map((x,i) => `<tr data-oi="${i}"><td class="sub">${esc(x.date)}</td><td>${esc(x.type)}</td><td>${esc(x.desc)}</td>${x.id ? `<td class="id" data-oi="${i}"><span class="oid">${esc(x.id)}</span></td>` : `<td class="id">–</td>`}<td class="n">${money(r2(x.amt))}</td></tr>`).join("")
+      || `<tr><td colspan="5" class="sub">ไม่มีรายการอื่น</td></tr>`;
+  }
+
+  function renderLzBal(){
+    $("lzBalBox").hidden = !lzStmtAmt.size;
+    if (!lzStmtAmt.size) return;
+    const codes = [...new Set([...lzStmtAmt.keys(), ...lzStmtInc.keys()])].sort().reverse();
+    const c = {ok:0, okx:0, bad:0, noDep:0, noInc:0};
+    $("lzBalBody").innerHTML = codes.map(code => {
+      const s = lzStmtInfo(code), inc = s.inc, dep = s.dep;
+      let st, bad = false, gap = false;
+      if (inc == null) { st = "มีเงินเข้า แต่ไม่มีในรายรับที่อัปโหลด"; c.noInc++; gap = true; }
+      else if (dep == null) { st = "ยังไม่มีเงินเข้า"; c.noDep++; }
+      else if (Math.abs(inc - dep) < 0.01) { st = "ตรง"; c.ok++; }
+      else if (s.missing.length) { st = "ตรงเมื่อรวมคำสั่งซื้อนอกไฟล์รายรับ"; c.okx++; gap = true; }
+      else { st = "ไม่ตรง"; c.bad++; bad = true; }
+      const n = (lzStmtOrd.get(code) || new Set()).size;
+      return `<tr><td class="id">${esc(code)}</td><td class="odate">${esc(lzStmtPaid.get(code) || "–")}</td><td class="n">${n ? nf(n) : "–"}</td><td class="n">${money(inc)}</td><td class="n">${money(dep)}</td><td class="n${bad ? " pct hi" : ""}">${(bad || gap) && dep != null ? money(r2(dep - (inc || 0))) : "–"}</td><td><span class="tag${bad ? " bad" : ""}">${st}</span></td><td class="note">${s.missing.length ? s.missing.map(esc).join("<br>") + (s.missing.length === 1 && dep != null ? `<br><span class="sub">ยอดของคำสั่งซื้อนี้ ${money(s.gap)}</span>` : "") : "–"}</td></tr>`;
+    }).join("");
+    const note = $("lzBalNote");
+    note.className = "notice" + (c.bad ? " warn" : "");
+    note.textContent = `รอบบิล ${nf(codes.length)} รอบ: ตรง ${nf(c.ok)} · ตรงเมื่อรวมคำสั่งซื้อนอกไฟล์รายรับ ${nf(c.okx)} · ไม่ตรง ${nf(c.bad)} · ยังไม่มีเงินเข้า ${nf(c.noDep)} · มีเงินเข้าแต่ไม่มีในรายรับที่อัปโหลด ${nf(c.noInc)}` + (c.bad ? " · รอบบิลที่ไม่ตรง ให้ตรวจก่อนว่ารายงานรายรับที่อัปโหลดมีทุกรายการของรอบบิลนั้น ถ้าส่งออกรายรับตามวันที่สร้างคำสั่งซื้อ บางรายการของรอบบิลจะหายไป" : "") + (c.okx ? " · รอบบิลที่มีคำสั่งซื้อนอกไฟล์รายรับ: ส่วนต่างเป็นเงินของคำสั่งซื้อที่ระบุไว้ (ดูจากไฟล์ ASC) ส่งออกรายรับของฉันให้ครอบคลุมวันที่ของคำสั่งซื้อนั้นเพื่อดูรายละเอียดค่าธรรมเนียม" : "") + (!ascMap.size && c.bad ? " · อัปโหลดไฟล์ ASC ด้วยเพื่อให้รู้ว่าส่วนต่างเป็นของคำสั่งซื้อไหน" : "");
+  }
+
+  function status(msg, warn){ const el = $("fileStatus"); el.hidden = false; el.textContent = msg; el.className = "notice" + (warn ? " warn" : ""); }
+
+  function openFiles(list){
+    const arr = [...(list || [])]; if (!arr.length) return;
+    if (typeof XLSX === "undefined") { status("โหลดตัวอ่านไฟล์ Excel ไม่สำเร็จ ลองรีเฟรชหน้าแล้วเลือกไฟล์อีกครั้ง", true); return; }
+    Promise.all(arr.map(file => new Promise(res => {
+      const fr = new FileReader();
+      fr.onerror = () => res({name:file.name, error:true});
+      fr.onload = () => {
+        try {
+          const wb = readBook(new Uint8Array(fr.result), file.name);
+          // pick the sheet whose header row looks most like an order report
+          let best = null, bestScore = -1;
+          const plat = [];
+          wb.SheetNames.forEach(n => {
+            const aoa = toAoa(wb.Sheets[n]);
+            const pr = parsePlatformSheet(aoa);
+            if (pr && pr !== "lazada-orders") { if (!(pr.skipZero && !pr.n)) plat.push(`${pr.platform} ${nf(pr.n)} ${pr.unit || "คำสั่งซื้อ"}`); return; }
+            const sc = headerScore(aoa[detectHeader(aoa)]);
+            if (sc > bestScore) { bestScore = sc; best = aoa; }
+          });
+          res(plat.length ? {name:file.name, plat} : {name:file.name, aoa:best || []});
+        } catch(e) { res({name:file.name, error:true}); }
+      };
+      fr.readAsArrayBuffer(file);
+    }))).then(done => {
+      const plat = done.filter(f => f.plat);
+      const ok = done.filter(f => !f.error && !f.plat), bad = done.filter(f => f.error);
+      if (plat.length) {
+        refreshPlatLabels(); $("clearPlat").hidden = !(platMap.size || balMap.size || retMap.size || cancelMap.size || lzStmtPaid.size || ascMap.size || lzPrice.size || pstMap.size);
+        platStatus(plat.map(f => `${f.name}: ${f.plat.join(", ")}`).join(" · ") + ` · รวม ${nf(platMap.size)} คำสั่งซื้อในรายงานแพลตฟอร์ม`);
+        if (!ok.length) {
+          if (isSample && platMap.size) { isSample = false; files = []; }
+          build();
+          status("ไฟล์นี้เป็นรายงานรายรับของแพลตฟอร์ม ระบบนำไปใช้เป็นรายงานแพลตฟอร์มให้แล้ว (ดูสถานะด้านล่าง)");
+          return;
+        }
+      }
+      if (!ok.length) { status("อ่านไฟล์ไม่ได้ ตรวจว่าเป็นไฟล์ .xlsx .xls หรือ .csv ที่ไม่ได้ตั้งรหัสผ่าน", true); return; }
+      files = ok; isSample = false; $("mHeader").value = "";
+      build();
+      status(`อ่านแล้ว ${ok.length} ไฟล์ (${ok.map(f => f.name).join(", ")}) · ${nf(rows.length)} แถว ${nf(orders.length)} คำสั่งซื้อ` + (bad.length ? ` · อ่านไม่ได้: ${bad.map(f => f.name).join(", ")}` : "") + " · ตรวจคอลัมน์ใน STEP 2 ให้ถูกต้อง", bad.length > 0);
+    });
+  }
+
+  function platStatus(msg, warn){ const el = $("platStatus"); el.hidden = !msg; el.textContent = msg || ""; el.className = "notice" + (warn ? " warn" : ""); }
+  function openPlatFiles(list){
+    const arr = [...(list || [])]; if (!arr.length) return;
+    if (typeof XLSX === "undefined") { platStatus("โหลดตัวอ่านไฟล์ Excel ไม่สำเร็จ ลองรีเฟรชหน้าแล้วเลือกไฟล์อีกครั้ง", true); return; }
+    Promise.all(arr.map(file => new Promise(res => {
+      const fr = new FileReader();
+      fr.onerror = () => res(`${file.name}: อ่านไฟล์ไม่ได้`);
+      fr.onload = () => {
+        try {
+          const wb = readBook(new Uint8Array(fr.result), file.name);
+          const got = []; let lazada = false;
+          wb.SheetNames.forEach(n => {
+            const r = parsePlatformSheet(toAoa(wb.Sheets[n]));
+            if (r === "lazada-orders") lazada = true; else if (r && !(r.skipZero && !r.n)) got.push(`${r.platform} ${nf(r.n)} ${r.unit || "คำสั่งซื้อ"}`);
+          });
+          res(`${file.name}: ` + (got.length ? got.join(", ") : lazada ? "เป็นรายงานคำสั่งซื้อของ Lazada ซึ่งไม่มีค่าธรรมเนียม ให้ใช้รายงานการเงิน (Transaction Overview) ในช่องนี้แทน" : "ไม่ใช่รายงานรายรับที่รู้จัก"));
+        } catch(e) { res(`${file.name}: อ่านไฟล์ไม่ได้`); }
+      };
+      fr.readAsArrayBuffer(file);
+    }))).then(msgs => {
+      refreshPlatLabels();
+      if (isSample && platMap.size) { isSample = false; files = []; $("fileStatus").hidden = true; build(); } else compute();
+      $("clearPlat").hidden = !(platMap.size || balMap.size || retMap.size || cancelMap.size || lzStmtPaid.size || ascMap.size || lzPrice.size || pstMap.size);
+      platStatus(msgs.join(" · ") + (platMap.size ? ` · รวม ${nf(platMap.size)} คำสั่งซื้อในรายงานแพลตฟอร์ม` : ""), msgs.some(m => /ไม่ใช่|ไม่ได้|ซึ่งไม่มีค่าธรรมเนียม/.test(m)));
+    });
+  }
+  $("filePlat").addEventListener("change", e => { openPlatFiles(e.target.files); e.target.value = ""; });
+  const dropPlat = $("dropPlat");
+  ["dragenter","dragover"].forEach(ev => dropPlat.addEventListener(ev, e => { e.preventDefault(); dropPlat.classList.add("drag"); }));
+  ["dragleave","drop"].forEach(ev => dropPlat.addEventListener(ev, e => { e.preventDefault(); dropPlat.classList.remove("drag"); }));
+  dropPlat.addEventListener("drop", e => openPlatFiles(e.dataTransfer.files));
+  $("clearPlat").addEventListener("click", () => { platMap = new Map(); platLabels = []; balMap = new Map(); balOther = []; retMap = new Map(); retInfo = new Map(); cancelMap = new Map(); lzStmtPaid = new Map(); lzStmtAmt = new Map(); lzStmtInc = new Map(); lzStmtOrd = new Map(); ascMap = new Map(); lzPrice = new Map(); pstMap = new Map(); $("clearPlat").hidden = true; platStatus(""); if (files.length) compute(); else $("loadSample").click(); });
+  $("mSrc").addEventListener("change", compute);
+  $("bFilter").addEventListener("change", renderBal);
+  $("copyBal").addEventListener("click", () => {
+    const line = a => a.map(v => String(v ?? "").replace(/[\t\r\n]+/g, " ")).join("\t");
+    const data = [line(["หมายเลขคำสั่งซื้อ","วันที่สั่งซื้อ","ผลการกระทบยอด","ยอดตามรายงานรายรับ","เงินเข้า Seller Balance","ส่วนต่าง","วันที่เงินเข้า"])]
+      .concat(balList().map(x => line([x.id, x.odate || "", BAL_LABEL[x.st], x.inc, x.bal, x.st === "ok" || x.st === "zero" ? "" : x.gap, x.date]))).join("\n");
+    const btn = $("copyBal"), ta = $("copyBalFallback");
+    const done = () => { btn.textContent = "คัดลอกแล้ว"; setTimeout(() => btn.textContent = "คัดลอกตารางไปวางใน Excel", 1800); };
+    const fallback = () => { ta.hidden = false; ta.value = data; ta.focus(); ta.select(); btn.textContent = "กด Ctrl+C เพื่อคัดลอก"; };
+    try { navigator.clipboard.writeText(data).then(done, fallback); } catch(e) { fallback(); }
+  });
+
+  $("file").addEventListener("change", e => openFiles(e.target.files));
+  const drop = $("drop");
+  ["dragenter","dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("drag"); }));
+  ["dragleave","drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("drag"); }));
+  drop.addEventListener("drop", e => openFiles(e.dataTransfer.files));
+
+  $("loadSample").addEventListener("click", () => {
+    const keep = saved; saved = {thr:keep.thr};   // sample uses its own headers, not the remembered mapping
+    isSample = true; files = [{name:"ตัวอย่าง", aoa:SAMPLE}]; $("mHeader").value = "";
+    build(); saved = keep;
+    status("กำลังแสดงข้อมูลตัวอย่าง อัปโหลดรายงานจาก BigSeller เพื่อดูตัวเลขจริงของร้าน");
+  });
+  FIELDS.forEach(f => $(f).addEventListener("change", () => { persist(); compute(); }));
+  $("mMode").addEventListener("change", compute);
+  $("mBase").addEventListener("change", compute);
+  $("mThr").addEventListener("input", () => { try { saved.thr = $("mThr").value; localStorage.setItem(KEY, JSON.stringify(saved)); } catch(e) {} summary(); render(); renderBal(); renderLzBal(); });
+  $("mHeader").addEventListener("change", () => { if (files.length) build(); });
+  // own range selection for order numbers: drag down (or shift+click) from an order number, Ctrl+C copies them
+  let selBody = null;   // the table body the current selection lives in
+  const selIds = () => oidCells().filter(td => td.classList.contains("sel") && td.querySelector(".oid")).map(td => td.querySelector(".oid").textContent);
+  // The blue marks are drawn by the page, so the browser has nothing selected and its own Copy would copy nothing.
+  // Mirror the numbers into a focused, selected field: then Ctrl+C and the right-click Copy both work.
+  function updateSelUI(){
+    const ids = selIds(), ta = $("selText");
+    $("selBar").hidden = !ids.length;
+    $("selCount").textContent = `เลือก ${nf(ids.length)} หมายเลขคำสั่งซื้อ`;
+    $("selCopy").textContent = "คัดลอกหมายเลขคำสั่งซื้อ";
+    ta.value = ids.join("\n");
+    if (ids.length) { try { ta.focus({preventScroll:true}); ta.select(); } catch(e) {} }
+  }
+  function copyIds(){
+    const ids = selIds(); if (!ids.length) return;
+    const text = ids.join("\n"), btn = $("selCopy");
+    const done = () => { btn.textContent = `คัดลอกแล้ว ${nf(ids.length)} รายการ`; };
+    const fallback = () => { const ta = $("selText"); ta.value = text; ta.focus({preventScroll:true}); ta.select(); let ok = false; try { ok = document.execCommand("copy"); } catch(e) {} btn.textContent = ok ? `คัดลอกแล้ว ${nf(ids.length)} รายการ` : "คัดลอกไม่ได้ ลองกด Ctrl+C"; };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch(e) { fallback(); }
+  }
+  const oidCells = () => selBody ? [...selBody.querySelectorAll("td.id[data-oi]")] : [];
+  const paintSel = () => {
+    const lo = Math.min(selA, selB), hi = Math.max(selA, selB);
+    oidCells().forEach(td => { const i = +td.dataset.oi; td.classList.toggle("sel", selA != null && i >= lo && i <= hi); });
+  };
+  document.addEventListener("mousedown", e => {
+    const td = e.target.closest && e.target.closest("td.id[data-oi]");
+    // right-click on a marked number: keep focus on the hidden field so the menu's Copy has something to copy
+    if (td && e.button === 2 && td.classList.contains("sel")) { e.preventDefault(); return; }
+    if (!td || e.button !== 0) return;
+    const body = td.closest("tbody");
+    if (body !== selBody) { selA = selB = null; paintSel(); selBody = body; }
+    e.preventDefault();
+    try { window.getSelection().removeAllRanges(); } catch(err) {}
+    const i = +td.dataset.oi;
+    if (e.shiftKey && selA != null) selB = i; else selA = selB = i;
+    dragSel = true; paintSel();
+  });
+  document.addEventListener("mouseover", e => {
+    if (!dragSel || !selBody) return;
+    const tr = e.target.closest && e.target.closest("tr[data-oi]"); if (!tr || !selBody.contains(tr)) return;
+    selB = +tr.dataset.oi; paintSel();
+  });
+  document.addEventListener("mousemove", e => {
+    if (!dragSel) return;
+    if (!selBody) return;
+    const box = selBody.closest(".scroll"), r = box.getBoundingClientRect();
+    if (e.clientY > r.bottom - 36) box.scrollTop += 24; else if (e.clientY < r.top + 60) box.scrollTop -= 24;
+  });
+  document.addEventListener("mouseup", () => { if (dragSel) { dragSel = false; updateSelUI(); } });
+  document.addEventListener("keydown", e => {
+    if (selA == null) return;
+    if ((e.ctrlKey || e.metaKey) && (e.key === "c" || e.key === "C")) { e.preventDefault(); copyIds(); }
+    else if (e.key === "Escape") { selA = selB = null; paintSel(); updateSelUI(); }
+  });
+  $("selCopy").addEventListener("click", copyIds);
+  $("selClear").addEventListener("click", () => { selA = selB = null; paintSel(); updateSelUI(); });
+  document.addEventListener("mousedown", e => {
+    if (selA == null || (e.target.closest && (e.target.closest("td.id[data-oi]") || e.target.closest("#selBar")))) return;
+    selA = selB = null; paintSel(); updateSelUI();
+  });
+  document.addEventListener("copy", e => {
+    if (selA == null) return;
+    const s = window.getSelection && String(window.getSelection()); if (s && document.activeElement !== $("selText")) return;
+    const ids = selIds();
+    if (!ids.length) return;
+    e.clipboardData.setData("text/plain", ids.join("\n")); e.preventDefault();
+  });
+  $("fSort").addEventListener("change", () => { hSort = null; });
+  $("clearHF").addEventListener("click", () => { Object.keys(HF).forEach(k => { HF[k] = ""; }); render(); });
+  $("resHead").addEventListener("change", e => {
+    const s = e.target.closest && e.target.closest(".hsel"); if (!s) return;
+    if (MIRROR[s.dataset.f]) $(MIRROR[s.dataset.f]).value = s.value; else HF[s.dataset.f] = s.value;
+    render();
+  });
+  $("resHead").addEventListener("click", e => {
+    const b = e.target.closest(".sortbtn"); if (!b) return;
+    const k = b.dataset.k;
+    hSort = hSort && hSort.key === k ? {key:k, dir:-hSort.dir} : {key:k, dir: k === "sku" || k === "pay" ? 1 : -1};
+    render();
+  });
+  ["view","fPlat","fBrand","fPay","fSort"].forEach(id => $(id).addEventListener("change", render));
+  $("fSearch").addEventListener("input", render);
+  // a column pasted from Excel arrives with line breaks; keep them as separators
+  $("fSearch").addEventListener("paste", e => {
+    const text = e.clipboardData && e.clipboardData.getData("text"); if (!text || !/[\r\n\t]/.test(text)) return;
+    e.preventDefault();
+    const el = $("fSearch"), clean = text.replace(/[\r\n\t]+/g, " ").trim();
+    el.setRangeText(clean, el.selectionStart, el.selectionEnd, "end");
+    render();
+  });
+
+  $("copyRes").addEventListener("click", () => {
+    const data = tsv(), btn = $("copyRes"), ta = $("copyFallback");
+    const done = () => { btn.textContent = "คัดลอกแล้ว"; setTimeout(() => btn.textContent = "คัดลอกตารางไปวางใน Excel", 1800); };
+    const fallback = () => { ta.hidden = false; ta.value = data; ta.focus(); ta.select(); btn.textContent = "กด Ctrl+C เพื่อคัดลอก"; };
+    try { navigator.clipboard.writeText(data).then(done, fallback); } catch(e) { fallback(); }
+  });
+
+  // open with the example loaded so the page shows what it does
+  $("loadSample").click();
+})();
+</script>
+
+</body>
+</html>
