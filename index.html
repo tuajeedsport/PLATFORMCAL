@@ -369,6 +369,7 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
   let platSet = new Set(), balIdSet = new Set();   // platforms that have an income report loaded; every order number seen in Seller Balance
   let lzStmtPaid = new Map(), lzStmtAmt = new Map(), lzStmtInc = new Map(), lzStmtOrd = new Map();   // Lazada: per statement code, deposit time / deposit amount / income-report total / orders   // Lazada balance: statement code -> time the statement was paid into the seller balance
   let bigLabels = [];   // fee columns picked from the BigSeller file, kept apart from the platform report's labels
+  let svcMap = new Map(), svcLabels = [];   // Shopee "Service Fee Details": order -> {programme: amount}, programme names in file order
   let pdtMap = new Map();   // order -> {platform, ship, paid, done} from the platforms' own order exports; these win over BigSeller
   let pstMap = new Map();   // order -> status and reason from the platforms' own order exports {st:Set, why:Set, by, detail:Set, src}
   let lzPrice = new Map();   // Lazada product list: seller SKU -> [{name, list, special}] (one entry per listing that carries the SKU)
@@ -383,6 +384,7 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
       fees:["ค่าคอมมิชชั่น AMS","ค่าคอมมิชชั่น","ค่าบริการ","ค่าธรรมเนียมโครงสร้างพื้นฐานแพลตฟอร์ม","ค่าธรรมเนียม ของโปรแกรมประหยัดค่าจัดส่ง","ค่าธุรกรรมการชำระเงิน"],
       orig:["สินค้าราคาปกติ"], sales:["สินค้าราคาปกติ","ส่วนลดสินค้าจากผู้ขาย","จำนวนเงินที่ทำการคืนให้ผู้ซื้อ"], refund:["จำนวนเงินที่ทำการคืนให้ผู้ซื้อ"], support:["ส่วนลดสินค้าที่ออกโดย Shopee"],
       ship:["ค่าจัดส่งที่ชำระโดยผู้ซื้อ","ค่าจัดส่งสินค้าที่ออกโดย Shopee","ค่าจัดส่งที่ Shopee ชำระโดยชื่อของคุณ","ค่าจัดส่งสินค้าคืน","ค่าจัดส่งสินค้าคืนผู้ขาย","โปรแกรมประหยัดค่าจัดส่งคืนสินค้า"],
+      ads:["ค่าธรรมเนียมเติมเงินโฆษณาจากเงิน Escrow"],
       shipParts:{cust:["ค่าจัดส่งที่ชำระโดยผู้ซื้อ"], plat:["ค่าจัดส่งสินค้าที่ออกโดย Shopee"], fwd:["ค่าจัดส่งที่ Shopee ชำระโดยชื่อของคุณ"], ret:["ค่าจัดส่งสินค้าคืน","ค่าจัดส่งสินค้าคืนผู้ขาย"], back:["โปรแกรมประหยัดค่าจัดส่งคืนสินค้า"]} },
     { platform:"TikTok", need:["หมายเลขคำสั่งซื้อ/การปรับ","ค่าธรรมเนียมทั้งหมด"], id:"หมายเลขคำสั่งซื้อ/การปรับ", total:"ค่าธรรมเนียมทั้งหมด", payout:"ยอดการชำระเงินทั้งหมด", date:"เวลาที่สร้างคำสั่งซื้อ",
       type:"ประเภทธุรกรรม", typeOk:/คำสั่งซื้อ|order/i,
@@ -624,6 +626,22 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
         m.forEach((a,id) => { a.payout = late.get(id) || 0; a.ship = shipM.get(id) || 0; platMap.set(id, a); });
         return {platform:"Lazada", n:m.size};
       }
+      // Shopee Income, sheet "Service Fee Details": ค่าบริการ split by programme (PRIME Seller, Live Xtra ...), one row per order
+      if (keys.includes(hkey("หมายเลขคำสั่งซื้อ")) && keys.includes(hkey("ลำดับที่")) && !keys.includes(hkey("สินค้าราคาปกติ")) && keys.some(k => /program|xtra|โปรแกรม/i.test(k))) {
+        const raw = aoa[r] || [], cO = keys.indexOf(hkey("หมายเลขคำสั่งซื้อ"));
+        const cols = raw.map((x,i) => [txt(x), i]).filter(([x,i]) => i > cO && x);
+        const used = new Set();
+        let n = 0;
+        for (let k = r + 1; k < aoa.length; k++) {
+          const row = aoa[k] || [], id = txt(row[cO]);
+          if (!id) continue;
+          const m = svcMap.get(id) || {};
+          cols.forEach(([x,i]) => { const v = -num(row[i]); if (v) { m[x] = (m[x] || 0) + v; used.add(x); } });
+          svcMap.set(id, m); n++;
+        }
+        cols.forEach(([x]) => { if (used.has(x) && !svcLabels.includes(x)) svcLabels.push(x); });
+        return {platform:"Shopee รายละเอียดค่าบริการ", n, unit:"คำสั่งซื้อ"};
+      }
       const fmt = PLAT_FORMATS.find(f => f.need.every(n => keys.includes(hkey(n))));
       if (!fmt) continue;
       const col = n => keys.indexOf(hkey(n));
@@ -651,6 +669,7 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
         if (cOut >= 0) a.payout = (a.payout || 0) + num(row[cOut]);
         if (fmt.refund) a.refund = (a.refund || 0) - sum(row, fmt.refund);
         if (fmt.ship) a.ship = (a.ship || 0) - sum(row, fmt.ship);
+        if (fmt.ads) a.ads = (a.ads || 0) - sum(row, fmt.ads);
         if (fmt.shipParts) { a.sp = a.sp || {cust:0, plat:0, fwd:0, ret:0, back:0}; for (const k in fmt.shipParts) a.sp[k] += sum(row, fmt.shipParts[k]); }
         if (fmt.support) a.support = (a.support || 0) + sum(row, fmt.support);
         if (fmt.salesH) a.salesH = (a.salesH || 0) + sum(row, fmt.salesH);
@@ -940,6 +959,16 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
         o.sales = o.lines.reduce((t,l) => t + l.sales, 0);
         o.tkSup = cPlatV >= 0 ? o.raw.reduce((t,r) => t + Math.abs(num(r[cPlatV])), 0) : 0;
       }
+      // shop voucher (BigSeller "Voucher ของร้านค้า"): Shopee repeats the order total on every row, Lazada and TikTok write it per item
+      if (cShopV >= 0) {
+        const vals = o.raw.map(r => Math.abs(num(r[cShopV])));
+        o.shopV = o.platform === "Shopee" ? (vals.find(x => x > 0) || 0) : vals.reduce((t,x) => t + x, 0);
+        o.lines.forEach(l => { l.shopV = o.platform === "Shopee" ? 0 : Math.abs(num(l.r[cShopV])); });
+        if (o.platform === "Shopee" && o.shopV > 0) {
+          const tot = o.lines.reduce((t,l) => t + (l.sales || 0), 0);
+          o.lines.forEach(l => { l.shopV = tot > 0 ? o.shopV * (l.sales || 0) / tot : o.shopV / o.lines.length; });
+        }
+      } else o.shopV = 0;
       const share = l => o.sales > 0 ? l.sales / o.sales : l.w / wSum;   // w falls back to รวมค่าสินค้าราคาเดิม
       // fees per selected column
       o.fees = feeCols.map((col,k) => sg[k] * orderVal(o, col));
@@ -965,7 +994,7 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
       o.ship = c.mShip >= 0 ? orderVal(o, c.mShip) : 0;
       o.support = c.mSupport >= 0 ? orderVal(o, c.mSupport) : 0;
       if (o.platform === "TikTok") { o.supInfo = (o.tkSup || 0) + o.support; o.support = 0; }
-      o.bigNet = o.sales - o.fee + o.support - o.ship;
+      o.bigNet = o.sales - o.fee + o.support - o.ship - (o.platform === "Shopee" ? (o.shopV || 0) : 0);   // Shopee: the shop voucher is not in รวมค่าสินค้า, so it comes off here
       // no fee figures for this order in the order file (e.g. BigSeller TikTok): the formula would only be the sale price, so leave it blank
       if (!(feeCols.length || useSettle) || (o.fee <= 0.005 && o.sales > 0.005)) { o.bigNet = null; o.pct = o.pct2 = null; }   // fee % unknown, not 0%
       o.shipLoss = c.mShip >= 0 ? o.ship : null;
@@ -1233,12 +1262,19 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
   const refText = o => !o.refund ? "" : (o.refAll ? "คืนทั้งคำสั่งซื้อ: " : "") + (o.refNote || refItems(o).join(", "));
   const refCell = (o, span) => `<td class="grp ref" rowspan="${span}">${!o.refund ? "–" : `<span class="tag bad">คืนเงิน ${money(r2(o.refund))}</span><br><span class="sub">${o.refAll ? "ทั้งคำสั่งซื้อ<br>" : ""}${o.refNote ? esc(o.refNote) : refItems(o).map(esc).join("<br>")}${o.refNote ? "" : `<br>${o.refSrc === "report" ? "ตามรายงานคืนสินค้า" : "คำนวณจากยอดเงินคืน"}`}</span><br><span class="sub ship">${shipNote(o).map(b => typeof b === "string" ? esc(b) : b.html).join("<br>")}</span>`}</td>`;
   // seller discount as a share of the original price; with the fee % and the money-in % it accounts for 100% of the original price
-  const dsc = o => o.orig > 0 && o.sales > 0 ? (o.orig - o.sales) / o.orig : null;
+  const vIn = o => o.platform === "TikTok" ? (o.shopV || 0) : 0;   // voucher already taken off รวมค่าสินค้า
+  const vInL = (o, l) => o.platform === "TikTok" ? (l.shopV || 0) : 0;
+  const vOut = o => o.platform === "Shopee" ? (o.shopV || 0) : 0;   // voucher still inside รวมค่าสินค้า, taken off the money in
+  const vOutL = (o, l) => o.platform === "Shopee" ? (l.shopV || 0) : 0;
+  const salesAfterV = o => o.sales - vOut(o) - (o.platform === "Lazada" ? (o.shopV || 0) : 0);
+  const salesAfterVL = (o, l) => (l.sales || 0) - vOutL(o, l) - (o.platform === "Lazada" ? (l.shopV || 0) : 0);
+  const dsc = o => o.orig > 0 && o.sales > 0 ? (o.orig - o.sales - vIn(o)) / o.orig : null;
+  const vPct = o => o.orig > 0 && o.shopV > 0.005 ? o.shopV / o.orig : null;
   // whatever is left over: discounts the platform funds (+), extra shipping (−), rounding
-  const restPct = o => o.refund || dsc(o) == null || o.pct2 == null || pin(o) == null ? null : 1 - dsc(o) - o.pct2 - pin(o) + (o.support || 0) / o.orig;
+  const restPct = o => o.refund || dsc(o) == null || o.pct2 == null || pin(o) == null ? null : 1 - dsc(o) - (vIn(o) + vOut(o)) / o.orig - o.pct2 - pin(o) + (o.support || 0) / o.orig;
   const dscCell = (o, span) => {
     const d = dsc(o), rest = restPct(o);
-    return `<td class="n grp" rowspan="${span}"><span class="pct">${pc(d)}</span>${d == null ? "" : `<br><span class="sub">${baht(r2(o.orig - o.sales))} / ${baht(r2(o.orig))}</span>`}${rest != null && Math.abs(rest) >= 0.0005 ? `<br><span class="sub" title="ส่วนที่เหลือหลังรวม ส่วนลดผู้ขาย + ค่าธรรมเนียม + เงินเข้า เช่น ส่วนลดที่แพลตฟอร์มออกให้ ค่าส่งที่ถูกหักเพิ่ม หรือการปัดเศษ">รายการอื่น ${rest > 0 ? "−" : "+"}${(Math.abs(rest) * 100).toFixed(2)}%</span>` : ""}</td>`;
+    return `<td class="n grp" rowspan="${span}"><span class="pct">${pc(d)}</span>${d == null ? "" : `<br><span class="sub">${baht(r2(o.orig - o.sales - vIn(o)))} / ${baht(r2(o.orig))}</span>`}${vPct(o) != null ? `<br><span class="sub">Voucher ของร้านค้า ${pc(vPct(o))} (${baht(r2(o.shopV))})</span>` : ""}${rest != null && Math.abs(rest) >= 0.0005 ? `<br><span class="sub" title="ส่วนที่เหลือหลังรวม ส่วนลดผู้ขาย + ค่าธรรมเนียม + เงินเข้า เช่น ส่วนลดที่แพลตฟอร์มออกให้ ค่าส่งที่ถูกหักเพิ่ม หรือการปัดเศษ">รายการอื่น ${rest > 0 ? "−" : "+"}${(Math.abs(rest) * 100).toFixed(2)}%</span>` : ""}</td>`;
   };
   const ascNote = o => { const x = ascMap.get(o.id); if (!x) return ""; return `<br><span class="sub" title="ลูกค้าจ่าย ${r2(x.cust)} · Lazada ออกให้ ${r2(x.lzv)} · Lazada เก็บ ${r2(x.charged)}">${Math.abs(x.wrong) > 0.005 ? `น้ำหนักไม่ตรง ${baht(r2(Math.abs(x.wrong)))}` : "ตามไฟล์ ASC"}</span>`; };
   const shipCell = (o, span) => {
@@ -1307,7 +1343,8 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
     return o.net * s;
   };
   const pinBase = o => o.refund && o.origKept != null ? o.origKept : o.orig;
-  const pin = o => pinBase(o) > 0.005 && o.net != null ? o.net / pinBase(o) : null;
+  // money in after the shop voucher, so the brand threshold sees what the shop really keeps
+  const pin = o => pinBase(o) > 0.005 && o.net != null ? netAfterV(o) / pinBase(o) : null;
   const dedOf = o => o.fee + (o.shipLoss || 0) - (o.support || 0);
   const lineShare = (o, l) => o.sales > 0.005 ? (l.sales || 0) / o.sales : 1 / (o.lines.length || 1);
   // % against รวมค่าสินค้า plus the platform-funded discount, which is the base the platform charges its fees on
@@ -1321,13 +1358,17 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
     const fwd = x.wrong - x.charged, known = x.cust + x.lzv + fwd + x.ret;
     return {cust: x.cust, plat: x.lzv, fwd, ret: x.ret, back: x.total - known};
   };
+  // shop voucher per SKU, and whether it still has to come off the money in:
+  // TikTok's รวมค่าสินค้า already excludes it, and a platform payout has already paid it
+  const netAfterV = o => o.net;
+  const adsOf = o => { const a = o.act || platMap.get(o.id); return a && a.ads ? a.ads : 0; };
   const salesKeptOf = o => {
     if (!o.refund) return o.sales;
     if (o.refAll) return 0;
     // refunded pieces known: drop them; otherwise drop the refunded amount
     return o.lines.some(l => l.rq) ? o.lines.reduce((t,l) => t + (l.sales || 0) * (1 - (l.rq || 0) / (Math.round(l.qty) || 1)), 0) : Math.max(0, o.sales - o.refund);
   };
-  const pinS = o => salesKeptOf(o) > 0.005 && o.net != null ? o.net / salesKeptOf(o) : null;
+  const pinS = o => salesKeptOf(o) > 0.005 && o.net != null ? netAfterV(o) / salesKeptOf(o) : null;
   // brand is read from the product name; when several brand words appear, the one written first wins
   const BRANDS = [
     ["WARRIX", /warrix|วอริกซ์|วาริกซ์/i], ["GRAND", /grand\s*sport|แกรนด์\s*สปอร์ต|(?<![a-z])grand(?![a-z])/i], ["CADENZA", /cadenza/i],
@@ -1534,9 +1575,9 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
 
   // (BigSeller) / (แพลตฟอร์ม) after each Excel header; a column filled from the platform when it has the figure and from BigSeller otherwise says both
   const SHIP_COLS = ["ค่าส่ง: ลูกค้าจ่าย ทั้งคำสั่งซื้อ","ค่าส่ง: แพลตฟอร์มสนับสนุน ทั้งคำสั่งซื้อ","ค่าส่ง: ขาไปที่ถูกเรียกเก็บ ทั้งคำสั่งซื้อ","ค่าส่งคืนสินค้า ทั้งคำสั่งซื้อ","ค่าส่ง: ได้คืน/ปรับยอด ทั้งคำสั่งซื้อ","ค่าส่งสุทธิ (+ได้ / −เสีย) ทั้งคำสั่งซื้อ"];
-  const SRC_BIG = new Set(["วันที่สั่งซื้อ","สถานะแพลตฟอร์ม","สาเหตุยกเลิก","เครื่องหมายคำสั่งซื้อ","หมายเหตุ CS","หมายเหตุ Pick Orders","แพลตฟอร์ม","ร้านค้า","SKU","ยี่ห้อ","ชื่อสินค้า","จำนวน","รวมค่าสินค้าราคาเดิม","รวมค่าสินค้า","รวมค่าสินค้าราคาเดิม ทั้งคำสั่งซื้อ","รวมค่าสินค้าทั้งคำสั่งซื้อ"]);
-  const SRC_PLAT = new Set([...SHIP_COLS,"เงินเข้า","วันที่โอนเงิน","อัตราค่าธุรกรรม","ยอดโอนจริงจากแพลตฟอร์ม","ค่าธรรมเนียมจริงจากแพลตฟอร์ม","เงินเข้า Seller Balance","ชนยอด","เงินคืน","รายการที่คืน","จำนวนที่คืนของ SKU นี้","ที่มาของ SKU ที่คืน","เจอใน Income","เจอใน Balance","ข้อเสนอการคืนเงิน/คืนสินค้า","เลขพัสดุส่งคืน","สถานะการส่งสินค้าคืน","เวลายื่นคำขอคืน","เวลาที่คืนเงิน","เวลาสินค้าคืนถึงร้าน","ส่วนลดแพลตฟอร์มที่รวมในรวมค่าสินค้าแล้ว (TikTok)"]);
-  const SRC_MIX = new Set(["ค่าส่งที่ร้านค้าเสีย (แบ่งตาม SKU)","ค่าธรรมเนียม + ค่าส่ง − ส่วนลดแพลตฟอร์ม","ค่าธรรมเนียม + ค่าส่ง − ส่วนลดแพลตฟอร์ม ทั้งคำสั่งซื้อ","วันที่ส่งสินค้า","วันที่ลูกค้าชำระเงิน","วันที่คำสั่งซื้อสำเร็จ","วันที่ยกเลิก","วิธีการชำระเงิน","เลขแทรคกิ้ง","ค่าธรรมเนียมรวม","ยอดเงินเข้าหลังหักทั้งหมด","ค่าธรรมเนียมทั้งคำสั่งซื้อ","ค่าส่งที่ร้านค้าเสีย (ทั้งคำสั่งซื้อ)","ส่วนลดแพลตฟอร์มสนับสนุน (+)"]);
+  const SRC_BIG = new Set(["Voucher ของร้านค้า","Voucher ของร้านค้า ทั้งคำสั่งซื้อ","วันที่สั่งซื้อ","สถานะแพลตฟอร์ม","สาเหตุยกเลิก","เครื่องหมายคำสั่งซื้อ","หมายเหตุ CS","หมายเหตุ Pick Orders","แพลตฟอร์ม","ร้านค้า","SKU","ยี่ห้อ","ชื่อสินค้า","จำนวน","รวมค่าสินค้าราคาเดิม","รวมค่าสินค้า","รวมค่าสินค้าราคาเดิม ทั้งคำสั่งซื้อ","รวมค่าสินค้าทั้งคำสั่งซื้อ"]);
+  const SRC_PLAT = new Set(["ค่าโฆษณาที่หักจากเงินคำสั่งซื้อ ทั้งคำสั่งซื้อ",...SHIP_COLS,"เงินเข้า","วันที่โอนเงิน","อัตราค่าธุรกรรม","ยอดโอนจริงจากแพลตฟอร์ม","ค่าธรรมเนียมจริงจากแพลตฟอร์ม","เงินเข้า Seller Balance","ชนยอด","เงินคืน","รายการที่คืน","จำนวนที่คืนของ SKU นี้","ที่มาของ SKU ที่คืน","เจอใน Income","เจอใน Balance","ข้อเสนอการคืนเงิน/คืนสินค้า","เลขพัสดุส่งคืน","สถานะการส่งสินค้าคืน","เวลายื่นคำขอคืน","เวลาที่คืนเงิน","เวลาสินค้าคืนถึงร้าน","ส่วนลดแพลตฟอร์มที่รวมในรวมค่าสินค้าแล้ว (TikTok)"]);
+  const SRC_MIX = new Set(["รวมค่าสินค้าหลังหัก Voucher ของร้านค้า","รวมค่าสินค้าหลังหัก Voucher ทั้งคำสั่งซื้อ","ค่าส่งที่ร้านค้าเสีย (แบ่งตาม SKU)","ค่าธรรมเนียม + ค่าส่ง − ส่วนลดแพลตฟอร์ม","ค่าธรรมเนียม + ค่าส่ง − ส่วนลดแพลตฟอร์ม ทั้งคำสั่งซื้อ","วันที่ส่งสินค้า","วันที่ลูกค้าชำระเงิน","วันที่คำสั่งซื้อสำเร็จ","วันที่ยกเลิก","วิธีการชำระเงิน","เลขแทรคกิ้ง","ค่าธรรมเนียมรวม","ยอดเงินเข้าหลังหักทั้งหมด","ค่าธรรมเนียมทั้งคำสั่งซื้อ","ค่าส่งที่ร้านค้าเสีย (ทั้งคำสั่งซื้อ)","ส่วนลดแพลตฟอร์มสนับสนุน (+)"]);
   const SRC_CALC = /^เงินคืน \+ ส่วนต่างอื่น|^%|^เกณฑ์ขั้นต่ำยี่ห้อ$|^ผลเทียบเกณฑ์ยี่ห้อ$|^คำสั่งซื้อ$/;
   function srcHeaders(H, feeSet){
     const hasBig = rows.length > 0;
@@ -1547,6 +1588,7 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
       if (h === "หมายเลขคำสั่งซื้อ" || /BigSeller|รายงานแพลตฟอร์ม/.test(h)) return h;
       if (feeSet.has(h)) return `${h} ${fromPlat ? P : B}`;
       if (SRC_CALC.test(h)) return `${h} (คำนวณ)`;
+      if (/^ค่าบริการ: /.test(h)) return `${h} ${P}`;
       if (SRC_PLAT.has(h)) return `${h} ${P}`;
       if (SRC_MIX.has(h)) return `${h} ${M}`;
       if (SRC_BIG.has(h)) return `${h} ${hasBig ? B : P}`;
@@ -1560,9 +1602,9 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
     if ($("view").value === "sku")
       return [line(srcHeaders(["SKU","ยี่ห้อ","ชื่อสินค้า","แพลตฟอร์ม","คำสั่งซื้อ","จำนวน","รวมค่าสินค้าราคาเดิม","รวมค่าสินค้า",...feeNames.flatMap(feeHead),"ค่าธรรมเนียมรวม","ยอดเงินเข้าหลังหักทั้งหมด","% เทียบราคาเดิม","% เทียบรวมค่าสินค้า","% เงินเข้าเทียบราคาเดิม","เกณฑ์ขั้นต่ำยี่ห้อ","ผลเทียบเกณฑ์ยี่ห้อ"], new Set(feeNames)))]
         .concat(skuList().map(g => line([g.sku, g.brand, g.name, g.platform, g.n, g.qty, r2(g.orig), r2(g.sales), ...g.fees.flatMap(x => feePair(x, g.sales)), r2(g.fee), r2(g.net), p(g.pct2), p(g.pct), ...(c => [p(c.v), c.min == null ? "" : r2(c.min * 100), bminText(c)])(brandCheck(g.brand, g.pinWB > 0.005 ? g.pinW / g.pinWB : null))]))).join("\n");
-    const out = [line(["หมายเลขคำสั่งซื้อ","วันที่สั่งซื้อ","สถานะแพลตฟอร์ม","สถานะ (รายงานแพลตฟอร์ม)","สาเหตุ (รายงานแพลตฟอร์ม)","วันที่ส่งสินค้า","วันที่ลูกค้าชำระเงิน","วันที่คำสั่งซื้อสำเร็จ","วันที่โอนเงิน","วันที่ยกเลิก","สาเหตุยกเลิก","เครื่องหมายคำสั่งซื้อ","หมายเหตุ CS","หมายเหตุ Pick Orders","แพลตฟอร์ม","ร้านค้า","วิธีการชำระเงิน","อัตราค่าธุรกรรม","SKU","ยี่ห้อ","ชื่อสินค้า","จำนวน","รวมค่าสินค้าราคาเดิม","รวมค่าสินค้า",...feeNames.flatMap(feeHead),"ค่าธรรมเนียมรวม","ค่าธรรมเนียม + ค่าส่ง − ส่วนลดแพลตฟอร์ม","ยอดเงินเข้าหลังหักทั้งหมด","% SKU เทียบราคาเดิม","% SKU เทียบรวมค่าสินค้า","% ส่วนลดผู้ขายของ SKU เทียบราคาเดิม","รวมค่าสินค้าราคาเดิม ทั้งคำสั่งซื้อ","รวมค่าสินค้าทั้งคำสั่งซื้อ","ค่าธรรมเนียมทั้งคำสั่งซื้อ","ค่าธรรมเนียม + ค่าส่ง − ส่วนลดแพลตฟอร์ม ทั้งคำสั่งซื้อ","เงินคืน + ส่วนต่างอื่น ทั้งคำสั่งซื้อ","% ส่วนลดผู้ขายเทียบราคาเดิม","% คำสั่งซื้อเทียบราคาเดิม","% คำสั่งซื้อเทียบรวมค่าสินค้า","% ค่าธรรมเนียมสุทธิ (หลังหักเงินสนับสนุน)","เงินเข้า","% เงินเข้าเทียบราคาเดิม","เงินเข้าโดยประมาณ (รายงาน BigSeller)","ยอดโอนจริงจากแพลตฟอร์ม",...bigLabels.flatMap(h => feeHead(`${h} (รายงาน BigSeller ทั้งคำสั่งซื้อ)`)),"ค่าส่งที่ร้านเสีย (รายงาน BigSeller)","ค่าธรรมเนียมรวม (รายงาน BigSeller)","ค่าธรรมเนียมจริงจากแพลตฟอร์ม","เงินเข้า Seller Balance","ชนยอด","เงินคืน","รายการที่คืน","จำนวนที่คืนของ SKU นี้","ที่มาของ SKU ที่คืน","ค่าส่งที่ร้านค้าเสีย (ทั้งคำสั่งซื้อ)","ค่าส่งที่ร้านค้าเสีย (แบ่งตาม SKU)","ส่วนลดแพลตฟอร์มสนับสนุน (+)","ส่วนลดแพลตฟอร์มที่รวมในรวมค่าสินค้าแล้ว (TikTok)","เจอใน Income","เจอใน Balance","เลขแทรคกิ้ง","ข้อเสนอการคืนเงิน/คืนสินค้า","เลขพัสดุส่งคืน","สถานะการส่งสินค้าคืน","% เงินเข้าเทียบราคาเดิม (คำสั่งซื้อ)","เกณฑ์ขั้นต่ำยี่ห้อ","ผลเทียบเกณฑ์ยี่ห้อ","เวลายื่นคำขอคืน","เวลาที่คืนเงิน","เวลาสินค้าคืนถึงร้าน","% เงินเข้าเทียบรวมค่าสินค้า (คำสั่งซื้อ)",...feeNames.map(h => `% ${h} (ฐานรวมส่วนลดแพลตฟอร์ม)`),"% ค่าธรรมเนียมรวม (ฐานรวมส่วนลดแพลตฟอร์ม)",...SHIP_COLS])];
+    const out = [line(["หมายเลขคำสั่งซื้อ","วันที่สั่งซื้อ","สถานะแพลตฟอร์ม","สถานะ (รายงานแพลตฟอร์ม)","สาเหตุ (รายงานแพลตฟอร์ม)","วันที่ส่งสินค้า","วันที่ลูกค้าชำระเงิน","วันที่คำสั่งซื้อสำเร็จ","วันที่โอนเงิน","วันที่ยกเลิก","สาเหตุยกเลิก","เครื่องหมายคำสั่งซื้อ","หมายเหตุ CS","หมายเหตุ Pick Orders","แพลตฟอร์ม","ร้านค้า","วิธีการชำระเงิน","อัตราค่าธุรกรรม","SKU","ยี่ห้อ","ชื่อสินค้า","จำนวน","รวมค่าสินค้าราคาเดิม","รวมค่าสินค้า","รวมค่าสินค้าหลังหัก Voucher ของร้านค้า",...feeNames.flatMap(h => h === "ค่าบริการ" ? feeHead(h).concat(svcLabels.flatMap(n => feeHead(`ค่าบริการ: ${n}`))) : feeHead(h)),"ค่าธรรมเนียมรวม","ค่าธรรมเนียม + ค่าส่ง − ส่วนลดแพลตฟอร์ม","ยอดเงินเข้าหลังหักทั้งหมด","% SKU เทียบราคาเดิม","% SKU เทียบรวมค่าสินค้า","% SKU เทียบรวมค่าสินค้าหลังหัก Voucher","% ส่วนลดผู้ขายของ SKU เทียบราคาเดิม","Voucher ของร้านค้า","% Voucher ของร้านค้าของ SKU เทียบราคาเดิม","รวมค่าสินค้าราคาเดิม ทั้งคำสั่งซื้อ","รวมค่าสินค้าทั้งคำสั่งซื้อ","รวมค่าสินค้าหลังหัก Voucher ทั้งคำสั่งซื้อ","ค่าธรรมเนียมทั้งคำสั่งซื้อ","ค่าธรรมเนียม + ค่าส่ง − ส่วนลดแพลตฟอร์ม ทั้งคำสั่งซื้อ","ค่าโฆษณาที่หักจากเงินคำสั่งซื้อ ทั้งคำสั่งซื้อ","เงินคืน + ส่วนต่างอื่น ทั้งคำสั่งซื้อ","% ส่วนลดผู้ขายเทียบราคาเดิม","Voucher ของร้านค้า ทั้งคำสั่งซื้อ","% Voucher ของร้านค้าเทียบราคาเดิม","% คำสั่งซื้อเทียบราคาเดิม","% คำสั่งซื้อเทียบรวมค่าสินค้า","% คำสั่งซื้อเทียบรวมค่าสินค้าหลังหัก Voucher","% ค่าธรรมเนียมสุทธิ (หลังหักเงินสนับสนุน)","เงินเข้า","% เงินเข้าเทียบราคาเดิม","เงินเข้าโดยประมาณ (รายงาน BigSeller)","ยอดโอนจริงจากแพลตฟอร์ม",...bigLabels.flatMap(h => feeHead(`${h} (รายงาน BigSeller ทั้งคำสั่งซื้อ)`)),"ค่าส่งที่ร้านเสีย (รายงาน BigSeller)","ค่าธรรมเนียมรวม (รายงาน BigSeller)","ค่าธรรมเนียมจริงจากแพลตฟอร์ม","เงินเข้า Seller Balance","ชนยอด","เงินคืน","รายการที่คืน","จำนวนที่คืนของ SKU นี้","ที่มาของ SKU ที่คืน","ค่าส่งที่ร้านค้าเสีย (ทั้งคำสั่งซื้อ)","ค่าส่งที่ร้านค้าเสีย (แบ่งตาม SKU)","ส่วนลดแพลตฟอร์มสนับสนุน (+)","ส่วนลดแพลตฟอร์มที่รวมในรวมค่าสินค้าแล้ว (TikTok)","เจอใน Income","เจอใน Balance","เลขแทรคกิ้ง","ข้อเสนอการคืนเงิน/คืนสินค้า","เลขพัสดุส่งคืน","สถานะการส่งสินค้าคืน","% เงินเข้าเทียบราคาเดิม (คำสั่งซื้อ)","เกณฑ์ขั้นต่ำยี่ห้อ","ผลเทียบเกณฑ์ยี่ห้อ","เวลายื่นคำขอคืน","เวลาที่คืนเงิน","เวลาสินค้าคืนถึงร้าน","% เงินเข้าเทียบรวมค่าสินค้า (คำสั่งซื้อ)","% เงินเข้าเทียบรวมค่าสินค้าหลังหัก Voucher (คำสั่งซื้อ)",...feeNames.map(h => `% ${h} (ฐานรวมส่วนลดแพลตฟอร์ม)`),"% ค่าธรรมเนียมรวม (ฐานรวมส่วนลดแพลตฟอร์ม)",...SHIP_COLS])];
     filteredOrders().sort(sorter()).forEach(o => o.lines.forEach(l =>
-      out.push(line([o.id, o.dateT || o.date || "", stTh(o.pstat || ""), pstText(o), (x => x ? [[...x.why].join(", "), x.by.size ? `โดย: ${[...x.by].map(stTh).join(", ")}` : "", [...x.detail].join(" · ")].filter(Boolean).join(" | ") : "")(pstOf(o)), ...["ship","paid","done"].map(k => dOf(o, k).v), transferOf(o).date || "", cancelTOf(o), cancelWhyOf(o) + (o.cancelBy ? ` (ยกเลิกโดย: ${o.cancelBy})` : ""), o.mark || "", o.ncs || "", o.npick || "", o.platform, o.store, o.pay, o.payRate || "", l.sku, br(l), l.name, l.qty, r2(l.orig), r2(l.sales), ...l.fees.flatMap(x => feePair(x, l.sales)), r2(l.fee), r2(l.fee + ((o.shipLoss || 0) - (o.support || 0)) * lineShare(o, l)), (v => v == null ? "" : r2(v))(lineNet(o, l)), p(l.orig > 0 ? l.fee / l.orig : null), p(l.sales > 0 ? l.fee / l.sales : null), p(l.orig > 0 && l.sales > 0 ? (l.orig - l.sales) / l.orig : null), r2(o.orig), r2(o.sales), r2(o.fee), r2(dedOf(o)), o.net == null ? "" : r2(o.sales - dedOf(o) - o.net), p(dsc(o)), p(o.pct2), p(o.pct), p(netFee(o)), o.act && o.act.payout != null ? r2(o.act.payout) : "", p(pin(o)), o.bigNet == null ? "" : r2(o.bigNet), o.act && o.act.payout != null ? r2(o.act.payout) : "", ...bigLabels.flatMap((_,k) => o.big && o.big.has ? feePair(o.big.fees[k], o.sales) : ["", ""]), o.big && o.big.ship != null ? r2(o.big.ship) : "", o.big && o.big.has ? r2(o.big.fee) : "", o.act ? r2(o.act.fee) : "", balOf(o).amt ?? "", (b => b.st + (b.full ? ` (${b.full})` : ""))(balOf(o)), o.refund ? r2(o.refund) : "", refText(o), l.rq || "", !o.refund || o.refNote ? "" : o.refSrc === "report" ? "รายงานคืนสินค้า" : "คำนวณจากยอดเงินคืน", o.shipLoss == null ? "" : r2(o.shipLoss), o.shipLoss == null ? "" : r2(o.shipLoss * lineShare(o, l)), r2(o.support || 0), r2(o.supInfo || 0), incOf(o) == null ? "" : incOf(o) ? "เจอ" : "ไม่เจอ", balFound(o) == null ? "" : balFound(o) ? "เจอ" : "ไม่เจอ", trackOf(o), (retInfo.get(o.id) || {}).offer || "", (retInfo.get(o.id) || {}).returnTrack || "", (retInfo.get(o.id) || {}).returnStatus || "", ...(c => [p(c.v), c.min == null ? "" : r2(c.min * 100), bminText(c)])(brandCheck(br(l), pin(o))), ...(ri => [ri.reqT || "", ri.refT || "", ri.backT || ""])(retInfo.get(o.id) || {}), p(pinS(o)), ...l.fees.map(x => pctPB(x, o, l)), pctPB(l.fee, o, l), ...(s => s ? [s.cust, s.plat, s.fwd, s.ret, s.back, s.cust + s.plat + s.fwd + s.ret + s.back].map(r2) : SHIP_COLS.map(() => ""))(spOf(o))]))));
+      out.push(line([o.id, o.dateT || o.date || "", stTh(o.pstat || ""), pstText(o), (x => x ? [[...x.why].join(", "), x.by.size ? `โดย: ${[...x.by].map(stTh).join(", ")}` : "", [...x.detail].join(" · ")].filter(Boolean).join(" | ") : "")(pstOf(o)), ...["ship","paid","done"].map(k => dOf(o, k).v), transferOf(o).date || "", cancelTOf(o), cancelWhyOf(o) + (o.cancelBy ? ` (ยกเลิกโดย: ${o.cancelBy})` : ""), o.mark || "", o.ncs || "", o.npick || "", o.platform, o.store, o.pay, o.payRate || "", l.sku, br(l), l.name, l.qty, r2(l.orig), r2(l.sales), r2(salesAfterVL(o, l)), ...l.fees.flatMap((x,k) => feeNames[k] === "ค่าบริการ" ? feePair(x, l.sales).concat(svcLabels.flatMap(n => (s => s ? feePair((s[n] || 0) * lineShare(o, l), l.sales) : ["", ""])(svcMap.get(o.id)))) : feePair(x, l.sales)), r2(l.fee), r2(l.fee + ((o.shipLoss || 0) - (o.support || 0)) * lineShare(o, l)), (v => v == null ? "" : r2(v))(lineNet(o, l)), p(l.orig > 0 ? l.fee / l.orig : null), p(l.sales > 0 ? l.fee / l.sales : null), p(salesAfterVL(o, l) > 0 ? l.fee / salesAfterVL(o, l) : null), p(l.orig > 0 && l.sales > 0 ? (l.orig - l.sales - vInL(o, l)) / l.orig : null), r2(l.shopV || 0), p(l.orig > 0 ? (l.shopV || 0) / l.orig : null), r2(o.orig), r2(o.sales), r2(salesAfterV(o)), r2(o.fee), r2(dedOf(o)), r2(adsOf(o)), o.net == null ? "" : r2(o.sales - dedOf(o) - vOut(o) - adsOf(o) - o.net), p(dsc(o)), r2(o.shopV || 0), p(o.orig > 0 ? (o.shopV || 0) / o.orig : null), p(o.pct2), p(o.pct), p(o.pct != null && salesAfterV(o) > 0.005 ? o.fee / salesAfterV(o) : null), p(netFee(o)), o.act && o.act.payout != null ? r2(o.act.payout) : "", p(pin(o)), o.bigNet == null ? "" : r2(o.bigNet), o.act && o.act.payout != null ? r2(o.act.payout) : "", ...bigLabels.flatMap((_,k) => o.big && o.big.has ? feePair(o.big.fees[k], o.sales) : ["", ""]), o.big && o.big.ship != null ? r2(o.big.ship) : "", o.big && o.big.has ? r2(o.big.fee) : "", o.act ? r2(o.act.fee) : "", balOf(o).amt ?? "", (b => b.st + (b.full ? ` (${b.full})` : ""))(balOf(o)), o.refund ? r2(o.refund) : "", refText(o), l.rq || "", !o.refund || o.refNote ? "" : o.refSrc === "report" ? "รายงานคืนสินค้า" : "คำนวณจากยอดเงินคืน", o.shipLoss == null ? "" : r2(o.shipLoss), o.shipLoss == null ? "" : r2(o.shipLoss * lineShare(o, l)), r2(o.support || 0), r2(o.supInfo || 0), incOf(o) == null ? "" : incOf(o) ? "เจอ" : "ไม่เจอ", balFound(o) == null ? "" : balFound(o) ? "เจอ" : "ไม่เจอ", trackOf(o), (retInfo.get(o.id) || {}).offer || "", (retInfo.get(o.id) || {}).returnTrack || "", (retInfo.get(o.id) || {}).returnStatus || "", ...(c => [p(c.v), c.min == null ? "" : r2(c.min * 100), bminText(c)])(brandCheck(br(l), pin(o))), ...(ri => [ri.reqT || "", ri.refT || "", ri.backT || ""])(retInfo.get(o.id) || {}), p(pinS(o)), p((b => b > 0.005 && o.net != null ? o.net / b : null)(salesKeptOf(o) - vOut(o) - (o.platform === "Lazada" ? (o.shopV || 0) : 0))), ...l.fees.map(x => pctPB(x, o, l)), pctPB(l.fee, o, l), ...(s => s ? [s.cust, s.plat, s.fwd, s.ret, s.back, s.cust + s.plat + s.fwd + s.ret + s.back].map(r2) : SHIP_COLS.map(() => ""))(spOf(o))]))));
     // column order for Excel: payment right after the ship date, the brand-threshold result next to it, SKU after the product name
     const grid = out.map(s => s.split("\t")), H = grid[0], ord = H.map((_, i) => i);
     const moveAfter = (name, after) => {
@@ -1579,6 +1621,7 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
     moveAfter("อัตราค่าธุรกรรม", "ผลเทียบเกณฑ์ยี่ห้อ");
     moveAfter("SKU", "ชื่อสินค้า");
     moveAfter("% เงินเข้าเทียบรวมค่าสินค้า (คำสั่งซื้อ)", "% เงินเข้าเทียบราคาเดิม (คำสั่งซื้อ)");
+    moveAfter("% เงินเข้าเทียบรวมค่าสินค้าหลังหัก Voucher (คำสั่งซื้อ)", "% เงินเข้าเทียบรวมค่าสินค้า (คำสั่งซื้อ)");
     grid[0] = srcHeaders(H, new Set(feeNames));
     return grid.map(r => ord.map(i => r[i] ?? "").join("\t")).join("\n");
   }
@@ -1693,7 +1736,7 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
       const plat = done.filter(f => f.plat);
       const ok = done.filter(f => !f.error && !f.plat), bad = done.filter(f => f.error);
       if (plat.length) {
-        refreshPlatLabels(); $("clearPlat").hidden = !(platMap.size || balMap.size || retMap.size || cancelMap.size || lzStmtPaid.size || ascMap.size || lzPrice.size || pstMap.size);
+        refreshPlatLabels(); $("clearPlat").hidden = !(platMap.size || balMap.size || retMap.size || cancelMap.size || lzStmtPaid.size || ascMap.size || lzPrice.size || pstMap.size || svcMap.size);
         platStatus(plat.map(f => `${f.name}: ${f.plat.join(", ")}`).join(" · ") + ` · รวม ${nf(platMap.size)} คำสั่งซื้อในรายงานแพลตฟอร์ม`);
         if (!ok.length) {
           if (isSample && platMap.size) { isSample = false; files = []; }
@@ -1731,7 +1774,7 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
     }))).then(msgs => {
       refreshPlatLabels();
       if (isSample && platMap.size) { isSample = false; files = []; $("fileStatus").hidden = true; build(); } else compute();
-      $("clearPlat").hidden = !(platMap.size || balMap.size || retMap.size || cancelMap.size || lzStmtPaid.size || ascMap.size || lzPrice.size || pstMap.size);
+      $("clearPlat").hidden = !(platMap.size || balMap.size || retMap.size || cancelMap.size || lzStmtPaid.size || ascMap.size || lzPrice.size || pstMap.size || svcMap.size);
       platStatus(msgs.join(" · ") + (platMap.size ? ` · รวม ${nf(platMap.size)} คำสั่งซื้อในรายงานแพลตฟอร์ม` : ""), msgs.some(m => /ไม่ใช่|ไม่ได้|ซึ่งไม่มีค่าธรรมเนียม/.test(m)));
     });
   }
@@ -1740,7 +1783,7 @@ textarea{width:100%;font-family:var(--f-num);font-size:.8rem;color:var(--fg);bac
   ["dragenter","dragover"].forEach(ev => dropPlat.addEventListener(ev, e => { e.preventDefault(); dropPlat.classList.add("drag"); }));
   ["dragleave","drop"].forEach(ev => dropPlat.addEventListener(ev, e => { e.preventDefault(); dropPlat.classList.remove("drag"); }));
   dropPlat.addEventListener("drop", e => openPlatFiles(e.dataTransfer.files));
-  $("clearPlat").addEventListener("click", () => { platMap = new Map(); platLabels = []; balMap = new Map(); balOther = []; retMap = new Map(); retInfo = new Map(); cancelMap = new Map(); lzStmtPaid = new Map(); lzStmtAmt = new Map(); lzStmtInc = new Map(); lzStmtOrd = new Map(); ascMap = new Map(); lzPrice = new Map(); pstMap = new Map(); pdtMap = new Map(); $("clearPlat").hidden = true; platStatus(""); if (files.length) compute(); else $("loadSample").click(); });
+  $("clearPlat").addEventListener("click", () => { platMap = new Map(); platLabels = []; balMap = new Map(); balOther = []; retMap = new Map(); retInfo = new Map(); cancelMap = new Map(); lzStmtPaid = new Map(); lzStmtAmt = new Map(); lzStmtInc = new Map(); lzStmtOrd = new Map(); ascMap = new Map(); lzPrice = new Map(); pstMap = new Map(); pdtMap = new Map(); svcMap = new Map(); svcLabels = []; $("clearPlat").hidden = true; platStatus(""); if (files.length) compute(); else $("loadSample").click(); });
   $("mSrc").addEventListener("change", compute);
   $("bFilter").addEventListener("change", renderBal);
   $("copyBal").addEventListener("click", () => {
